@@ -1,12 +1,23 @@
 import { getToken, clearToken } from "./auth";
 
+/**
+ * API endpoint. At build time `VITE_API_URL` wins. At runtime in a browser
+ * we fall back to same-origin (so the deployed web container proxies
+ * `/api/*` and `/ws/*` to the API via its nginx config — avoids baking
+ * the API hostname into the frontend bundle and sidesteps CORS).
+ */
+const envApiUrl = import.meta.env.VITE_API_URL as string | undefined;
+const envWsUrl = import.meta.env.VITE_WS_URL as string | undefined;
+
 export const API_URL: string =
-  (import.meta.env.VITE_API_URL as string | undefined) ??
-  "http://localhost:3000";
+  envApiUrl ??
+  (typeof window !== "undefined" ? window.location.origin : "http://localhost:3000");
 
 export const WS_URL: string =
-  (import.meta.env.VITE_WS_URL as string | undefined) ??
-  "ws://localhost:3000";
+  envWsUrl ??
+  (typeof window !== "undefined"
+    ? window.location.origin.replace(/^http/, "ws")
+    : "ws://localhost:3000");
 
 export class ApiError extends Error {
   status: number;

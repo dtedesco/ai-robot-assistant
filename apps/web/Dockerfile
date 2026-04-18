@@ -26,8 +26,10 @@ RUN pnpm --filter @robot/web build
 ###
 FROM nginx:1.27-alpine AS runtime
 
-# Default upstream; override with -e API_UPSTREAM=host:port
+# Defaults: docker-compose uses internal service name on port 3000 (http).
+# For Cloud Run override both: API_UPSTREAM=api-xxx-uc.a.run.app API_SCHEME=https
 ENV API_UPSTREAM=api:3000
+ENV API_SCHEME=http
 
 # Use the template mechanism for env substitution at container start.
 COPY apps/web/nginx.conf /etc/nginx/templates/default.conf.template

@@ -22,25 +22,26 @@ COPY packages/robot-protocol/src packages/robot-protocol/src
 COPY apps/api/prisma apps/api/prisma
 COPY apps/api/src apps/api/src
 
-# Generate Prisma client + build.
+# Build workspace deps first so @robot/shared resolves to dist/*.js at runtime.
+RUN pnpm --filter @robot/shared run build
+RUN pnpm --filter @robot/protocol run build
+# Generate Prisma client + build API.
 RUN pnpm --filter @robot/api exec prisma generate
 RUN pnpm --filter @robot/api run build
 
-# Bundle a self-contained deployable in /out.
-RUN pnpm --filter @robot/api deploy --prod /out || \
-    (mkdir -p /out && cp -r apps/api/dist /out/dist && \
-     cp apps/api/package.json /out/ && \
-     cp -r node_modules /out/node_modules)
-
 # ---------- runner ----------
+# We preserve the pnpm monorepo layout (apps/api alongside node_modules and
+# packages/) because pnpm's node_modules is full of relative symlinks into
+# `.pnpm/`, and breaking them causes resolution errors (`Cannot find
+# package 'fastify'` etc.). Simpler to ship the whole tree — Alpine keeps
+# the image small enough.
 FROM node:20-alpine AS runner
 WORKDIR /app
 ENV NODE_ENV=production
 ENV HOST=0.0.0.0
-ENV PORT=3000
 
-COPY --from=builder /out/ ./
-COPY --from=builder /repo/apps/api/prisma ./prisma
+COPY --from=builder /repo /app
 
+WORKDIR /app/apps/api
 EXPOSE 3000
 CMD ["node", "dist/server.js"]
