@@ -1,0 +1,63 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html,
+  body,
+  #root {
+    height: 100%;
+  }
+
+  body {
+    @apply bg-bg text-fg antialiased;
+    font-feature-settings: "ss01", "cv11";
+  }
+
+  * {
+    border-color: theme("colors.border.DEFAULT");
+  }
+}
+
+@layer components {
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 rounded-md px-3 py-2 text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+  .btn-primary {
+    @apply btn bg-accent text-white hover:bg-accent-hover;
+  }
+  .btn-secondary {
+    @apply btn bg-bg-muted text-fg hover:bg-border;
+  }
+  .btn-ghost {
+    @apply btn text-fg-muted hover:text-fg hover:bg-bg-muted;
+  }
+  .btn-danger {
+    @apply btn bg-danger text-white hover:opacity-90;
+  }
+
+  .input {
+    @apply w-full rounded-md bg-bg-muted border border-border px-3 py-2 text-sm text-fg placeholder-fg-subtle focus:outline-none focus:ring-2 focus:ring-accent/50 focus:border-accent;
+  }
+
+  .label {
+    @apply block text-xs font-medium text-fg-muted mb-1.5 uppercase tracking-wide;
+  }
+
+  .card {
+    @apply bg-bg-elevated border border-border rounded-lg;
+  }
+
+  .table-base {
+    @apply w-full text-sm;
+  }
+  .table-base thead th {
+    @apply text-left text-xs uppercase tracking-wide text-fg-muted font-medium px-4 py-3 border-b border-border;
+  }
+  .table-base tbody td {
+    @apply px-4 py-3 border-b border-border-subtle;
+  }
+  .table-base tbody tr:hover {
+    @apply bg-bg-muted/40;
+  }
+}

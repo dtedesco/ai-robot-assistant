@@ -1,0 +1,79 @@
+# Production-style stack for self-hosted VPS deploys.
+#
+# Usage:
+#   cp .env.example .env.prod   # then edit .env.prod with real values
+#   docker compose -f docker-compose.prod.yml --env-file .env.prod up -d --build
+#
+# What runs here:
+#   - postgres (local volume, NOT exposed on the host network)
+#   - api      (Fastify, port 3000 internal only; nginx proxies to it)
+#   - web      (nginx serving the Vite SPA on :80, proxying /api and /ws to api)
+#
+# The bridge daemon is intentionally NOT part of this stack: it runs on the
+# physical host near the robot (Raspberry Pi / Mac), connects via BLE, and
+# talks back to this API over WebSocket.
+#
+# TODO(migrations): the API Dockerfile's CMD is `node dist/server.js` — it does
+# NOT run `prisma migrate deploy` at startup. We override the command below to
+# run migrations first. This requires the Prisma CLI to be present in the
+# runtime image; confirm with `docker compose -f docker-compose.prod.yml run
+# --rm api npx prisma --version`. If missing, either (a) add `prisma` to the
+# runtime stage of apps/api/Dockerfile, or (b) run migrations as a one-off:
+#   docker compose -f docker-compose.prod.yml run --rm api npx prisma migrate deploy
+# and revert the `command:` override below to default.
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: ${POSTGRES_DB:-robot}
+    volumes:
+      - pgdata_prod:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-robot}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  api:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      NODE_ENV: production
+      HOST: 0.0.0.0
+      PORT: 3000
+      DATABASE_URL: ${DATABASE_URL:-postgresql://postgres:postgres@postgres:5432/robot?schema=public}
+      JWT_SECRET: ${JWT_SECRET}
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
+      ADMIN_EMAIL: ${ADMIN_EMAIL}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD}
+      CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost}
+    # Run migrations on startup, then hand off to the normal server entrypoint.
+    # See the TODO at the top of this file about moving this into the Dockerfile.
+    command: >
+      sh -c "npx --yes prisma migrate deploy && node dist/server.js"
+    expose:
+      - "3000"
+
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+    restart: unless-stopped
+    depends_on:
+      - api
+    environment:
+      API_UPSTREAM: api:3000
+    ports:
+      - "80:80"
+
+volumes:
+  pgdata_prod:

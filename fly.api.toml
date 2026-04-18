@@ -1,0 +1,73 @@
+# Fly.io configuration for the API (Fastify + Prisma + WebSocket hub).
+#
+# First-time setup:
+#   1. Install flyctl:   https://fly.io/docs/hands-on/install-flyctl/
+#   2. Authenticate:     flyctl auth login
+#   3. Create the app:   flyctl launch --no-deploy --copy-config --name robot-api
+#      (the --copy-config flag will reuse this file; confirm and adjust app name
+#      if you want something else — remember to keep it in sync below.)
+#   4. Provision a Postgres (any managed DB works):
+#        flyctl postgres create --name robot-db --region gru
+#        flyctl postgres attach robot-db --app robot-api
+#      This sets DATABASE_URL automatically.
+#   5. Set the remaining secrets (NEVER put these in this file):
+#        flyctl secrets set \
+#          JWT_SECRET="$(openssl rand -hex 48)" \
+#          OPENAI_API_KEY="sk-..." \
+#          ADMIN_EMAIL="admin@example.com" \
+#          ADMIN_PASSWORD="$(openssl rand -hex 16)" \
+#          CORS_ORIGIN="https://robot-web.fly.dev" \
+#          --app robot-api
+#   6. Deploy:           flyctl deploy --config fly.api.toml --remote-only
+#
+# TODO(migrations): the current Dockerfile CMD is `node dist/server.js` and does
+# NOT run `prisma migrate deploy`. Options:
+#   a. Add `release_command = "node_modules/.bin/prisma migrate deploy"` here
+#      (works once Prisma is in the runtime image — confirm it is).
+#   b. Modify the Dockerfile CMD to run migrations before boot (out of scope
+#      for this task, do it in a separate PR).
+# Uncomment the release_command line below once option (a) is validated:
+#   [deploy]
+#     release_command = "node_modules/.bin/prisma migrate deploy"
+
+app = "robot-api"
+primary_region = "gru"
+
+[build]
+  dockerfile = "apps/api/Dockerfile"
+
+[env]
+  PORT = "3000"
+  HOST = "0.0.0.0"
+  NODE_ENV = "production"
+
+# Secrets (set via `flyctl secrets set ...`, do NOT add them here):
+#   DATABASE_URL     - Postgres connection string (auto-set by `flyctl postgres attach`)
+#   JWT_SECRET       - long random string for JWT signing
+#   OPENAI_API_KEY   - OpenAI API key for Realtime proxy
+#   ADMIN_EMAIL      - bootstrap admin email
+#   ADMIN_PASSWORD   - bootstrap admin password
+#   CORS_ORIGIN      - allowed origin for the web app (e.g. https://robot-web.fly.dev)
+
+[processes]
+  app = "node dist/server.js"
+
+[http_service]
+  internal_port = 3000
+  force_https = true
+  auto_stop_machines = true
+  auto_start_machines = true
+  min_machines_running = 1
+  processes = ["app"]
+
+  [[http_service.checks]]
+    grace_period = "10s"
+    interval = "30s"
+    method = "GET"
+    timeout = "5s"
+    path = "/healthz"
+
+[[vm]]
+  cpu_kind = "shared"
+  cpus = 1
+  memory_mb = 512

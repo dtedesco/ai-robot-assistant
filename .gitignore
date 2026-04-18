@@ -1,11 +1,25 @@
-# Python
+# Python (legacy)
 __pycache__/
 *.py[cod]
 *$py.class
 .venv/
 venv/
-env/
+
+# Node
+node_modules/
+dist/
+build/
+.turbo/
+*.tsbuildinfo
+
+# Env
 .env
+.env.local
+legacy/env
+*.key
+
+# Claude Code local settings (per-user, not shared)
+.claude/
 
 # IDE
 .idea/
@@ -20,10 +34,6 @@ Thumbs.db
 # Logs
 *.log
 
-# Secrets
-env
-*.key
-
-# Contexts
-sofia_context.json
-contexts.json
+# Legacy contexts
+legacy/sofia_context.json
+legacy/contexts.json

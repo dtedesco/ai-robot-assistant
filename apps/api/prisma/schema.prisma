@@ -1,0 +1,58 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String
+  createdAt    DateTime @default(now())
+}
+
+model Agent {
+  id              String    @id @default(cuid())
+  name            String
+  personality     String
+  systemPrompt    String
+  voice           String    @default("alloy")
+  language        String    @default("pt-BR")
+  greeting        String?
+  emotionColorMap Json
+  tools           Json
+  tvLibrary       Json
+  /// URL (image or video) shown on the TV when no active content is
+  /// playing. Falls back to the built-in futuristic scene when null.
+  tvIdleBackgroundUrl String?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  sessions        Session[]
+}
+
+model Bridge {
+  id         String    @id @default(cuid())
+  name       String
+  token      String    @unique
+  status     String    @default("offline")
+  lastSeenAt DateTime?
+  createdAt  DateTime  @default(now())
+  sessions   Session[]
+}
+
+model Session {
+  id         String    @id @default(cuid())
+  agentId    String
+  bridgeId   String
+  startedAt  DateTime  @default(now())
+  endedAt    DateTime?
+  transcript Json      @default("[]")
+  agent      Agent     @relation(fields: [agentId], references: [id], onDelete: Cascade)
+  bridge     Bridge    @relation(fields: [bridgeId], references: [id], onDelete: Cascade)
+
+  @@index([agentId])
+  @@index([bridgeId])
+}

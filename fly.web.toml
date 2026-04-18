@@ -1,0 +1,58 @@
+# Fly.io configuration for the web app (admin UI + /tv/:sessionId).
+#
+# Runtime is nginx serving the Vite SPA and proxying /api and /ws to the API.
+#
+# First-time setup:
+#   1. flyctl launch --no-deploy --copy-config --name robot-web
+#   2. Tell nginx how to reach the API at runtime (the container's nginx.conf
+#      uses envsubst on ${API_UPSTREAM}). Either:
+#        - point to the internal 6PN address:
+#            flyctl secrets set API_UPSTREAM="robot-api.internal:3000" --app robot-web
+#          (the web container must be in the same org; free 6PN works across
+#          apps in the same org by default).
+#        - OR point to the public host:
+#            flyctl secrets set API_UPSTREAM="robot-api.fly.dev:443" --app robot-web
+#          (note: nginx proxy_pass to https requires a different template —
+#          prefer the internal route).
+#   3. Provide the VITE_* vars as BUILD args (they are inlined by Vite at build
+#      time, NOT read at runtime). The deploy-web GitHub workflow passes them
+#      with `--build-arg`. For a local deploy run:
+#        flyctl deploy --config fly.web.toml --remote-only \
+#          --build-arg VITE_API_URL="https://robot-api.fly.dev" \
+#          --build-arg VITE_WS_URL="wss://robot-api.fly.dev"
+#
+# NOTE: the current apps/web/Dockerfile does not declare ARG VITE_API_URL /
+# ARG VITE_WS_URL. Passing them via --build-arg is a no-op until the Dockerfile
+# is updated to ARG + ENV them before `pnpm --filter @robot/web build`. TODO
+# (separate PR): add those ARGs to apps/web/Dockerfile.
+
+app = "robot-web"
+primary_region = "gru"
+
+[build]
+  dockerfile = "apps/web/Dockerfile"
+
+  # Build args forwarded to Vite at build time. Supply via `flyctl deploy
+  # --build-arg KEY=value` or the GitHub Actions workflow. Leaving empty here
+  # so the CLI/workflow values always win.
+  [build.args]
+    VITE_API_URL = ""
+    VITE_WS_URL = ""
+
+[env]
+  # Runtime env consumed by nginx envsubst on /etc/nginx/templates/default.conf.template.
+  # Override via `flyctl secrets set API_UPSTREAM=...` if the target changes.
+  API_UPSTREAM = "robot-api.internal:3000"
+
+[http_service]
+  internal_port = 80
+  force_https = true
+  auto_stop_machines = true
+  auto_start_machines = true
+  min_machines_running = 0
+  processes = ["app"]
+
+[[vm]]
+  cpu_kind = "shared"
+  cpus = 1
+  memory_mb = 256

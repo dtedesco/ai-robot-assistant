@@ -1,0 +1,40 @@
+name: Deploy Web (Fly.io)
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - "apps/web/**"
+      - "packages/shared/**"
+      - "fly.web.toml"
+      - ".github/workflows/deploy-web.yml"
+
+concurrency:
+  group: deploy-web
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Deploy Web
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup flyctl
+        uses: superfly/flyctl-actions/setup-flyctl@master
+
+      # NOTE: VITE_API_URL / VITE_WS_URL are baked in at build time by Vite.
+      # The apps/web/Dockerfile must declare these as ARG + ENV BEFORE the
+      # `pnpm --filter @robot/web build` step for this to take effect. TODO:
+      # update apps/web/Dockerfile to consume these ARGs.
+      - name: Deploy
+        run: |
+          flyctl deploy \
+            --config fly.web.toml \
+            --remote-only \
+            --build-arg VITE_API_URL=${{ secrets.VITE_API_URL }} \
+            --build-arg VITE_WS_URL=${{ secrets.VITE_WS_URL }}
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
