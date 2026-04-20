@@ -159,7 +159,7 @@ function registerAuthedVisitRoutes(app: FastifyInstance): void {
     ]);
 
     return {
-      items: rows.map((r) => serializeVisit(r as VisitRow, query.includeConversations)),
+      items: rows.map((r) => serializeVisit(r as unknown as VisitRow, query.includeConversations)),
       total,
       limit: query.limit,
       offset: query.offset,
