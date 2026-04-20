@@ -231,6 +231,31 @@ export default function AgentForm({
           </div>
         </div>
 
+        {initial?.slug && (
+          <div className="bg-bg-muted/50 border border-border rounded-lg p-4">
+            <label className="label">URL do Agente</label>
+            <div className="flex items-center gap-2">
+              <code className="flex-1 text-sm bg-bg px-3 py-2 rounded border border-border overflow-x-auto">
+                /realtime/{initial.slug}
+              </code>
+              <button
+                type="button"
+                onClick={() => {
+                  const url = `${window.location.origin}/realtime/${initial.slug}`;
+                  navigator.clipboard.writeText(url);
+                }}
+                className="btn-secondary shrink-0"
+                title="Copiar URL"
+              >
+                Copiar
+              </button>
+            </div>
+            <p className="mt-2 text-xs text-fg-muted">
+              Use esta URL para acessar o agente diretamente
+            </p>
+          </div>
+        )}
+
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <label className="label">Voz</label>

@@ -62,6 +62,7 @@ export interface TvLibraryItem {
 export interface AgentDTO {
   id: string;
   name: string;
+  slug: string | null;
   personality: string;
   systemPrompt: string;
   voice: OpenAIVoice;

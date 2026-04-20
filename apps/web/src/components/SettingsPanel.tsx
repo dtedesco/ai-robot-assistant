@@ -5,6 +5,7 @@ export interface MediaSettings {
   micVolume: number;
   selectedCamera: string;
   selectedMic: string;
+  vadThreshold: number;
 }
 
 interface SettingsPanelProps {
@@ -23,20 +24,23 @@ interface MediaDeviceInfo {
 const STORAGE_KEY = "robot-media-settings";
 
 export function loadSettings(): MediaSettings {
-  try {
-    const stored = localStorage.getItem(STORAGE_KEY);
-    if (stored) {
-      return JSON.parse(stored);
-    }
-  } catch {
-    // ignore
-  }
-  return {
+  const defaults: MediaSettings = {
     speakerVolume: 1.0,
     micVolume: 1.0,
     selectedCamera: "",
     selectedMic: "",
+    vadThreshold: 0.5,
   };
+  try {
+    const stored = localStorage.getItem(STORAGE_KEY);
+    if (stored) {
+      const parsed = JSON.parse(stored);
+      return { ...defaults, ...parsed };
+    }
+  } catch {
+    // ignore
+  }
+  return defaults;
 }
 
 export function saveSettings(settings: MediaSettings): void {
@@ -313,6 +317,32 @@ export default function SettingsPanel({
                     ))
                   )}
                 </select>
+              </div>
+
+              {/* VAD Threshold */}
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">
+                  Sensibilidade do Microfone (VAD)
+                </label>
+                <div className="flex items-center gap-4">
+                  <span className="text-xs text-gray-500">Sensível</span>
+                  <input
+                    type="range"
+                    min="0.2"
+                    max="0.9"
+                    step="0.05"
+                    value={settings.vadThreshold}
+                    onChange={(e) => handleChange("vadThreshold", parseFloat(e.target.value))}
+                    className="flex-1 h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer accent-blue-500"
+                  />
+                  <span className="text-xs text-gray-500">Rígido</span>
+                  <span className="text-sm text-gray-400 w-12 text-right">
+                    {settings.vadThreshold.toFixed(2)}
+                  </span>
+                </div>
+                <p className="mt-1 text-xs text-gray-500">
+                  Valores mais altos reduzem eco mas podem cortar fala baixa
+                </p>
               </div>
 
               {/* Refresh Devices */}

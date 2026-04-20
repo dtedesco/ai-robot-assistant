@@ -62,11 +62,12 @@ interface RealtimeCredentials {
  */
 function sendTvCommand(agentId: string, endpoint: string, body?: object): void {
   apiQueue.enqueue(async () => {
-    const res = await fetch(`${API_URL}/api/realtime/${agentId}/tv/${endpoint}`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: body ? JSON.stringify(body) : undefined,
-    });
+    const options: RequestInit = { method: "POST" };
+    if (body) {
+      options.headers = { "Content-Type": "application/json" };
+      options.body = JSON.stringify(body);
+    }
+    const res = await fetch(`${API_URL}/api/realtime/${agentId}/tv/${endpoint}`, options);
     if (!res.ok) throw new Error(`TV ${endpoint} failed: ${res.status}`);
   });
 }
@@ -233,8 +234,11 @@ export default function RealtimeDisplay() {
   const hasFaceRef = useRef<boolean>(false);
 
   // Audio playback
+  // Track if currently speaking (to mute mic during playback)
+  const isSpeakingRef = useRef(false);
+
   const {
-    playChunk,
+    playChunk: rawPlayChunk,
     endPlayback,
   } = useAudioPlayback({
     volume: settings.speakerVolume,
@@ -243,6 +247,7 @@ export default function RealtimeDisplay() {
     },
     onPlaybackEnd: () => {
       console.log("[audio] playback ended");
+      isSpeakingRef.current = false;
       // Clear TV after a delay
       setTimeout(() => {
         if (agentIdRef.current) {
@@ -252,9 +257,22 @@ export default function RealtimeDisplay() {
     },
   });
 
-  // Audio capture - always send audio (face detection is separate)
+  // Wrapper to mute mic IMMEDIATELY when receiving audio (before playback starts)
+  // Also clear the audio input buffer to prevent echo from being processed
+  const playChunk = useCallback((pcmBase64: string) => {
+    if (!isSpeakingRef.current) {
+      isSpeakingRef.current = true; // Mute mic immediately
+      // Clear audio buffer to prevent any captured echo from being processed
+      realtimeRef.current?.clearAudioBuffer();
+    }
+    rawPlayChunk(pcmBase64);
+  }, [rawPlayChunk]);
+
+  // Audio capture - only send audio when face is present and not speaking
   const handleAudioChunk = useCallback((pcmBase64: string) => {
-    realtimeRef.current?.sendAudio(pcmBase64);
+    if (hasFaceRef.current && !isSpeakingRef.current) {
+      realtimeRef.current?.sendAudio(pcmBase64);
+    }
   }, []);
 
   const { isCapturing } = useAudioCapture(handleAudioChunk, {
@@ -443,10 +461,12 @@ export default function RealtimeDisplay() {
 
       console.log("[face] Match completed, person:", identifiedPersonRef.current?.name ?? "unknown");
 
-      // Trigger greeting after match completes (with small delay for state to settle)
+      // Trigger greeting after delay (wait for face to stabilize)
       setTimeout(() => {
-        triggerGreeting();
-      }, 500);
+        if (hasFaceRef.current) {
+          triggerGreeting();
+        }
+      }, 2000);
     } catch (err) {
       console.error("Face match error:", err);
       matchInProgress.current = false;
@@ -455,7 +475,6 @@ export default function RealtimeDisplay() {
   }, [triggerGreeting]);
 
   const handleFaceIdle = useCallback(() => {
-    // Greeting is now triggered after match completes, not here
     console.log("[face] Face idle detected");
   }, []);
 
@@ -713,6 +732,7 @@ export default function RealtimeDisplay() {
           voice: creds.voice,
           instructions: creds.instructions,
           tools: creds.tools,
+          vadThreshold: settings.vadThreshold,
         },
         {
           onPhaseChange: setPhase,
@@ -767,6 +787,13 @@ export default function RealtimeDisplay() {
       }
     };
   }, []);
+
+  // Update VAD threshold when settings change
+  useEffect(() => {
+    if (isStarted && realtimeRef.current) {
+      realtimeRef.current.updateVadThreshold(settings.vadThreshold);
+    }
+  }, [isStarted, settings.vadThreshold]);
 
   // Scroll to bottom when messages change
   useEffect(() => {

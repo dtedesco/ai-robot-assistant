@@ -51,6 +51,7 @@ export default function AgentsList() {
             <thead>
               <tr>
                 <th>Nome</th>
+                <th>Slug</th>
                 <th>Voz</th>
                 <th>Idioma</th>
                 <th>Atualizado</th>
@@ -59,7 +60,7 @@ export default function AgentsList() {
             </thead>
             <tbody>
               {Array.from({ length: 4 }).map((_, i) => (
-                <SkeletonRow key={i} cols={5} />
+                <SkeletonRow key={i} cols={6} />
               ))}
             </tbody>
           </table>
@@ -93,6 +94,7 @@ export default function AgentsList() {
             <thead>
               <tr>
                 <th>Nome</th>
+                <th>Slug</th>
                 <th>Voz</th>
                 <th>Idioma</th>
                 <th>Atualizado</th>
@@ -112,6 +114,15 @@ export default function AgentsList() {
                     <div className="text-xs text-fg-muted line-clamp-1">
                       {a.personality}
                     </div>
+                  </td>
+                  <td>
+                    {a.slug ? (
+                      <code className="text-xs bg-bg-muted px-2 py-1 rounded">
+                        {a.slug}
+                      </code>
+                    ) : (
+                      <span className="text-xs text-fg-subtle">—</span>
+                    )}
                   </td>
                   <td className="text-fg-muted">{a.voice}</td>
                   <td className="text-fg-muted">{a.language}</td>

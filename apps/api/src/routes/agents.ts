@@ -75,6 +75,7 @@ const TestVoiceSchema = z.object({
 interface AgentRow {
   id: string;
   name: string;
+  slug: string | null;
   personality: string;
   systemPrompt: string;
   voice: string;
@@ -88,10 +89,22 @@ interface AgentRow {
   updatedAt: Date;
 }
 
+/** Generate a URL-friendly slug from a name */
+function generateSlug(name: string): string {
+  return name
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "") // Remove accents
+    .replace(/[^a-z0-9]+/g, "-") // Replace non-alphanumeric with hyphens
+    .replace(/^-+|-+$/g, "") // Trim hyphens from start/end
+    .substring(0, 50); // Limit length
+}
+
 function serializeAgent(row: AgentRow): AgentDTO {
   return {
     id: row.id,
     name: row.name,
+    slug: row.slug,
     personality: row.personality,
     systemPrompt: row.systemPrompt,
     voice: row.voice as OpenAIVoice,
@@ -201,9 +214,11 @@ function registerAuthedAgentRoutes(app: FastifyInstance): void {
 
   app.post("/agents", async (req, reply) => {
     const input = CreateAgentSchema.parse(req.body);
+    const slug = generateSlug(input.name);
     const row = await prisma.agent.create({
       data: {
         name: input.name,
+        slug,
         personality: input.personality,
         systemPrompt: input.systemPrompt,
         voice: input.voice ?? "alloy",

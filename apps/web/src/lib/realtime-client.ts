@@ -13,6 +13,7 @@ export interface RealtimeConfig {
   voice: string;
   instructions: string;
   tools?: RealtimeTool[];
+  vadThreshold?: number;
 }
 
 export interface RealtimeTool {
@@ -248,7 +249,7 @@ export class RealtimeClient {
 
   private sendSessionUpdate(): void {
     if (!this.config || !this.isConnected()) return;
-    const { voice, instructions, tools } = this.config;
+    const { voice, instructions, tools, vadThreshold = 0.5 } = this.config;
 
     this.sendJson({
       type: "session.update",
@@ -261,14 +262,23 @@ export class RealtimeClient {
         input_audio_transcription: { model: "whisper-1", language: "pt" },
         turn_detection: {
           type: "server_vad",
-          threshold: 0.4,          // More sensitive to speech
-          prefix_padding_ms: 200,  // Less padding before speech
-          silence_duration_ms: 300, // Faster end-of-speech detection
+          threshold: vadThreshold,
+          prefix_padding_ms: 300,
+          silence_duration_ms: 500,
         },
         tools: tools ?? [],
         tool_choice: tools && tools.length > 0 ? "auto" : "none",
       },
     });
+  }
+
+  /**
+   * Update VAD threshold without reconnecting.
+   */
+  updateVadThreshold(threshold: number): void {
+    if (!this.config) return;
+    this.config.vadThreshold = threshold;
+    this.sendSessionUpdate();
   }
 
   private sendJson(obj: unknown): void {
