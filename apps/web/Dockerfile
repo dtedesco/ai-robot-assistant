@@ -18,7 +18,8 @@ RUN pnpm install --frozen-lockfile || pnpm install
 COPY packages/shared packages/shared
 COPY apps/web apps/web
 
-# Build
+# Build shared first, then web
+RUN pnpm --filter @robot/shared build
 RUN pnpm --filter @robot/web build
 
 ###
