@@ -3,6 +3,7 @@ import { z } from "zod";
 import type { TvContent } from "@robot/shared";
 import { prisma } from "../db.js";
 import type { TvHub } from "../services/tv-hub.js";
+import { registerPendingPerson } from "../ws/bridge-tv.js";
 
 const TvContentSchema: z.ZodType<TvContent> = z.union([
   z.object({ kind: z.literal("youtube"), url: z.string().min(1), title: z.string().optional() }),
@@ -75,6 +76,35 @@ export function bridgeTvRoutes(hub: TvHub): FastifyPluginAsync {
           backgroundUrl,
         });
         return reply.send({ ok: true, subscribers: subs });
+      },
+    );
+
+    // Register a new person with the pending face descriptor
+    const RegisterPersonBody = z.object({
+      name: z.string().min(1).max(100),
+    });
+
+    app.post<{ Params: { bridgeId: string }; Body: unknown }>(
+      "/bridge/:bridgeId/register-person",
+      async (req, reply) => {
+        const { name } = RegisterPersonBody.parse(req.body);
+        const result = await registerPendingPerson(req.params.bridgeId, name);
+
+        if (!result) {
+          return reply.status(400).send({
+            error: "NoPendingDescriptor",
+            message: "No pending face descriptor for this bridge. Face must be detected first.",
+          });
+        }
+
+        // Notify TV that person was registered
+        hub.publish(req.params.bridgeId, {
+          type: "face:registered",
+          personId: result.id,
+          name: result.name,
+        });
+
+        return reply.status(201).send(result);
       },
     );
   };

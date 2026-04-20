@@ -19,6 +19,7 @@ model User {
 
 model Agent {
   id              String    @id @default(cuid())
+  slug            String?   @unique
   name            String
   personality     String
   systemPrompt    String
@@ -34,6 +35,8 @@ model Agent {
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
   sessions        Session[]
+  visits          Visit[]
+  conversations   Conversation[]
 }
 
 model Bridge {
@@ -58,4 +61,61 @@ model Session {
 
   @@index([agentId])
   @@index([bridgeId])
+}
+
+model Person {
+  id             String   @id @default(cuid())
+  name           String
+  /// 128-dimensional face descriptor from face-api.js (Float32Array as JSON)
+  faceDescriptor Json
+  /// Optional profile photo URL
+  photoUrl       String?
+  /// Phone number
+  phone          String?
+  /// Gender: male, female, other
+  gender         String?
+  /// Preferences (JSON array of strings)
+  preferences    Json     @default("[]")
+  /// Context text for the AI about this person
+  context        String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  visits        Visit[]
+  conversations Conversation[]
+
+  @@index([name])
+}
+
+model Visit {
+  id        String   @id @default(cuid())
+  personId  String
+  agentId   String?
+  startedAt DateTime @default(now())
+  endedAt   DateTime?
+  person    Person   @relation(fields: [personId], references: [id], onDelete: Cascade)
+  agent     Agent?   @relation(fields: [agentId], references: [id], onDelete: SetNull)
+  conversations Conversation[]
+
+  @@index([personId])
+  @@index([agentId])
+  @@index([startedAt])
+}
+
+model Conversation {
+  id        String   @id @default(cuid())
+  personId  String?
+  agentId   String?
+  visitId   String?
+  role      String   // "user" | "assistant"
+  content   String
+  timestamp DateTime @default(now())
+  person    Person?  @relation(fields: [personId], references: [id], onDelete: SetNull)
+  agent     Agent?   @relation(fields: [agentId], references: [id], onDelete: SetNull)
+  visit     Visit?   @relation(fields: [visitId], references: [id], onDelete: SetNull)
+
+  @@index([personId])
+  @@index([agentId])
+  @@index([visitId])
+  @@index([timestamp])
 }

@@ -76,7 +76,7 @@ export default function Connect() {
       api.post<SessionDTO>("/api/sessions", params),
     onSuccess: (s) => {
       toast.success("Sessão iniciada.");
-      navigate(`/sessions/${s.id}`);
+      navigate(`/admin/sessions/${s.id}`);
     },
     onError: (err) => {
       const msg =
@@ -115,7 +115,7 @@ export default function Connect() {
     startSessionMutation.mutate({ agentId, bridgeId });
   }
 
-  const bridges = bridgesQuery.data ?? [];
+  const bridges = Array.isArray(bridgesQuery.data) ? bridgesQuery.data : [];
   const onlineBridges = bridges.filter((b) => b.status === "online");
 
   return (

@@ -40,6 +40,11 @@ WORKDIR /app
 ENV NODE_ENV=production
 ENV HOST=0.0.0.0
 
+# Prisma's linux-musl query engine links against libssl. Alpine 3.18+ ships
+# OpenSSL 3 but doesn't include it in the base Node image, so Prisma
+# defaults (wrongly) to the openssl-1.1.x binary and crashes on load.
+RUN apk add --no-cache openssl
+
 COPY --from=builder /repo /app
 
 WORKDIR /app/apps/api

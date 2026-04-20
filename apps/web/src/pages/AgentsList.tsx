@@ -39,7 +39,7 @@ export default function AgentsList() {
         title="Agentes"
         subtitle="Personalidades configuráveis do robô."
         actions={
-          <Link to="/agents/new" className="btn-primary">
+          <Link to="/admin/agents/new" className="btn-primary">
             Novo agente
           </Link>
         }
@@ -83,7 +83,7 @@ export default function AgentsList() {
             title="Nenhum agente cadastrado"
             description="Crie um agente para definir a personalidade, voz e comportamento do robô."
             action={
-              <Link to="/agents/new" className="btn-primary">
+              <Link to="/admin/agents/new" className="btn-primary">
                 Criar primeiro agente
               </Link>
             }
@@ -104,7 +104,7 @@ export default function AgentsList() {
                 <tr key={a.id}>
                   <td>
                     <Link
-                      to={`/agents/${a.id}`}
+                      to={`/admin/agents/${a.id}`}
                       className="text-fg hover:text-accent"
                     >
                       {a.name}

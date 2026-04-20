@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Bridge Local · Robert</title>
+    <title>Robot Assistant</title>
     <style>
       :root {
         --bg: #0e1116;
@@ -11,272 +11,284 @@
         --border: #242b36;
         --text: #e6e8eb;
         --muted: #8a93a0;
+        --subtle: #5c6370;
         --accent: #7dd3fc;
         --ok: #34d399;
         --warn: #fbbf24;
         --err: #f87171;
-        --btn: #1f2937;
-        --btn-hover: #2c3646;
       }
-      * { box-sizing: border-box; }
-      html, body { margin: 0; padding: 0; background: var(--bg); color: var(--text); font-family: ui-sans-serif, system-ui, -apple-system, sans-serif; }
-      body { max-width: 900px; margin: 0 auto; padding: 1.5rem; }
-      h1 { margin: 0 0 0.25rem 0; font-size: 1.25rem; }
-      .sub { color: var(--muted); font-size: 0.9rem; margin-bottom: 1.25rem; }
-      .tabs { display: flex; gap: 0.25rem; border-bottom: 1px solid var(--border); margin-bottom: 1rem; }
-      .tabs button { background: transparent; color: var(--muted); border: 0; padding: 0.6rem 1rem; cursor: pointer; font-size: 0.9rem; border-bottom: 2px solid transparent; }
-      .tabs button.active { color: var(--text); border-bottom-color: var(--accent); }
-      .panel { background: var(--panel); border: 1px solid var(--border); border-radius: 8px; padding: 1rem; margin-bottom: 1rem; }
-      .row { display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap; margin-bottom: 0.5rem; }
-      .row > label { min-width: 110px; color: var(--muted); font-size: 0.85rem; }
-      button.action { background: var(--btn); color: var(--text); border: 1px solid var(--border); border-radius: 6px; padding: 0.45rem 0.9rem; cursor: pointer; font-size: 0.85rem; }
-      button.action:hover:not(:disabled) { background: var(--btn-hover); }
-      button.action:disabled { opacity: 0.4; cursor: not-allowed; }
-      button.primary { background: var(--accent); color: #0e1116; border-color: var(--accent); }
-      input, select { background: #0b0f14; color: var(--text); border: 1px solid var(--border); border-radius: 6px; padding: 0.4rem 0.6rem; font-size: 0.85rem; }
-      input[type=number] { width: 100px; }
-      input[type=text] { min-width: 260px; }
-      .pill { display: inline-block; padding: 0.15rem 0.55rem; border-radius: 999px; font-size: 0.75rem; font-weight: 600; }
-      .pill.ok { background: rgba(52,211,153,0.15); color: var(--ok); }
-      .pill.warn { background: rgba(251,191,36,0.15); color: var(--warn); }
-      .pill.err { background: rgba(248,113,113,0.15); color: var(--err); }
-      .pill.muted { background: #1f2937; color: var(--muted); }
-      table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
-      th, td { text-align: left; padding: 0.45rem 0.5rem; border-bottom: 1px solid var(--border); }
-      th { color: var(--muted); font-weight: 500; }
-      .grid { display: grid; grid-template-columns: auto 1fr; gap: 0.35rem 1rem; font-size: 0.85rem; }
-      .grid > div:nth-child(odd) { color: var(--muted); }
-      pre { background: #0b0f14; border: 1px solid var(--border); border-radius: 6px; padding: 0.6rem; font-size: 0.78rem; overflow: auto; max-height: 200px; }
-      .bar { width: 100%; background: #0b0f14; border: 1px solid var(--border); border-radius: 4px; height: 10px; overflow: hidden; }
-      .bar > div { height: 100%; background: linear-gradient(90deg, var(--ok), var(--warn), var(--err)); transition: width 0.1s; }
-      .hide { display: none; }
-      small.err { color: var(--err); }
-      small.ok { color: var(--ok); }
+      * { box-sizing: border-box; margin: 0; padding: 0; }
+      html, body { background: var(--bg); color: var(--text); font-family: ui-sans-serif, system-ui, -apple-system, sans-serif; min-height: 100vh; }
+
+      /* Main container */
+      .container { max-width: 600px; margin: 0 auto; padding: 2rem 1.5rem; min-height: 100vh; display: flex; flex-direction: column; }
+
+      /* Header */
+      .header { text-align: center; margin-bottom: 2rem; }
+      .header h1 { font-size: 1.5rem; font-weight: 600; margin-bottom: 0.25rem; }
+      .header p { color: var(--muted); font-size: 0.9rem; }
+
+      /* Status indicator */
+      .status-bar { display: flex; align-items: center; justify-content: center; gap: 0.5rem; margin-bottom: 1.5rem; font-size: 0.85rem; }
+      .status-dot { width: 8px; height: 8px; border-radius: 50%; }
+      .status-dot.ok { background: var(--ok); box-shadow: 0 0 8px var(--ok); }
+      .status-dot.warn { background: var(--warn); animation: pulse 1.5s infinite; }
+      .status-dot.err { background: var(--err); }
+      .status-dot.muted { background: var(--subtle); }
+      @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+
+      /* Agent grid */
+      .agent-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 1rem; flex: 1; }
+      .agent-card {
+        background: var(--panel);
+        border: 2px solid var(--border);
+        border-radius: 12px;
+        padding: 1.5rem 1rem;
+        text-align: center;
+        cursor: pointer;
+        transition: all 0.2s ease;
+      }
+      .agent-card:hover { border-color: var(--accent); transform: translateY(-2px); }
+      .agent-card.selected { border-color: var(--accent); background: rgba(125, 211, 252, 0.1); }
+      .agent-card.disabled { opacity: 0.5; cursor: not-allowed; }
+      .agent-avatar {
+        width: 64px; height: 64px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, var(--accent) 0%, #a78bfa 100%);
+        margin: 0 auto 1rem;
+        display: flex; align-items: center; justify-content: center;
+        font-size: 1.5rem; font-weight: 600; color: var(--bg);
+      }
+      .agent-name { font-size: 1rem; font-weight: 600; margin-bottom: 0.25rem; }
+      .agent-desc { font-size: 0.75rem; color: var(--muted); line-height: 1.4; }
+
+      /* Conversation view */
+      .conversation { display: none; flex-direction: column; flex: 1; }
+      .conversation.active { display: flex; }
+      .conv-header { display: flex; align-items: center; gap: 1rem; margin-bottom: 1.5rem; }
+      .back-btn {
+        background: none; border: none; color: var(--muted); cursor: pointer;
+        font-size: 1.5rem; padding: 0.5rem;
+      }
+      .back-btn:hover { color: var(--text); }
+      .stop-btn {
+        background: var(--err);
+        color: white;
+        border: none;
+        border-radius: 8px;
+        padding: 0.5rem 1rem;
+        font-size: 0.85rem;
+        cursor: pointer;
+        transition: opacity 0.2s;
+      }
+      .stop-btn:hover { opacity: 0.8; }
+      .stop-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+      .conv-agent { flex: 1; }
+      .conv-agent-name { font-size: 1.1rem; font-weight: 600; }
+      .conv-agent-status { font-size: 0.8rem; color: var(--muted); }
+
+      /* Chat bubbles */
+      .chat-area { flex: 1; display: flex; flex-direction: column; gap: 1rem; overflow-y: auto; max-height: 60vh; padding: 0.5rem; }
+      .chat-bubble {
+        padding: 1rem 1.25rem;
+        border-radius: 16px;
+        max-width: 90%;
+        line-height: 1.5;
+      }
+      .chat-bubble.user {
+        background: var(--accent);
+        color: var(--bg);
+        align-self: flex-end;
+        border-bottom-right-radius: 4px;
+      }
+      .chat-bubble.assistant {
+        background: var(--panel);
+        border: 1px solid var(--border);
+        align-self: flex-start;
+        border-bottom-left-radius: 4px;
+      }
+      .chat-placeholder {
+        flex: 1;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+        color: var(--muted);
+      }
+
+      /* Phase indicator */
+      .phase-indicator {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.75rem;
+        padding: 1rem;
+        background: var(--panel);
+        border-radius: 12px;
+        margin-top: 1rem;
+      }
+      .phase-icon { font-size: 1.5rem; }
+      .phase-text { font-size: 0.9rem; color: var(--muted); }
+      .phase-text.active { color: var(--accent); }
+
+      /* Footer link */
+      .footer { text-align: center; padding-top: 2rem; margin-top: auto; }
+      .footer a { color: var(--subtle); font-size: 0.75rem; text-decoration: none; }
+      .footer a:hover { color: var(--muted); text-decoration: underline; }
+
+      /* Loading state */
+      .loading { display: flex; align-items: center; justify-content: center; padding: 3rem; color: var(--muted); }
+      .spinner { width: 24px; height: 24px; border: 2px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.8s linear infinite; margin-right: 0.75rem; }
+      @keyframes spin { to { transform: rotate(360deg); } }
+
+      /* Empty state */
+      .empty { text-align: center; padding: 3rem; color: var(--muted); }
+      .empty-icon { font-size: 3rem; margin-bottom: 1rem; opacity: 0.5; }
+
+      .hide { display: none !important; }
+
+      /* Settings panel */
+      .settings-panel {
+        background: var(--panel);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 1rem;
+        margin-top: 1rem;
+      }
+      .settings-row {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        margin-bottom: 0.75rem;
+      }
+      .settings-row:last-child { margin-bottom: 0; }
+      .settings-row label {
+        width: 80px;
+        font-size: 0.8rem;
+        color: var(--muted);
+      }
+      .settings-row input[type="range"] {
+        flex: 1;
+        height: 4px;
+        -webkit-appearance: none;
+        background: var(--border);
+        border-radius: 2px;
+      }
+      .settings-row input[type="range"]::-webkit-slider-thumb {
+        -webkit-appearance: none;
+        width: 16px;
+        height: 16px;
+        border-radius: 50%;
+        background: var(--accent);
+        cursor: pointer;
+      }
+      .settings-row span {
+        width: 50px;
+        text-align: right;
+        font-size: 0.8rem;
+        color: var(--muted);
+      }
+      .settings-toggle {
+        background: var(--panel);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        color: var(--muted);
+        padding: 0.5rem 1rem;
+        font-size: 0.8rem;
+        cursor: pointer;
+        margin-top: 0.75rem;
+        width: 100%;
+      }
+      .settings-toggle:hover { color: var(--text); border-color: var(--accent); }
     </style>
   </head>
   <body>
-    <div style="display:flex;align-items:center;justify-content:space-between;gap:1rem">
-      <div>
-        <h1>Bridge Local · <span id="bridgeName">…</span></h1>
-        <div class="sub">Console de debug local — sem auth. Admin cloud continua em <code>:5173</code>.</div>
+    <div class="container">
+      <!-- Agent Selection View -->
+      <div id="view-select">
+        <div class="header">
+          <h1>Robot Assistant</h1>
+          <p>Escolha um assistente para conversar</p>
+        </div>
+
+        <div class="status-bar" id="statusBar">
+          <span class="status-dot muted"></span>
+          <span>Verificando conexao...</span>
+        </div>
+
+        <div id="agentList" class="agent-grid">
+          <div class="loading"><div class="spinner"></div>Carregando...</div>
+        </div>
+
+        <div class="footer">
+          <a href="/admin">Configuracoes</a>
+        </div>
       </div>
-      <label style="display:flex;align-items:center;gap:0.5rem;font-size:0.85rem;cursor:pointer;user-select:none" title="Desliga BLE/auto-connect e esconde abas Robot/BLE — só mic+speaker do Mac.">
-        <input type="checkbox" id="testMode" onchange="toggleTestMode(this.checked)" />
-        <span>Modo teste (sem robô)</span>
-      </label>
-    </div>
 
-    <div class="tabs">
-      <button data-tab="status" class="active">Status</button>
-      <button data-tab="chat">Conversa</button>
-      <button data-tab="tv">TV</button>
-      <button data-tab="ble" class="tab-hardware">BLE</button>
-      <button data-tab="robot" class="tab-hardware">Robot</button>
-      <button data-tab="audio">Áudio</button>
-    </div>
+      <!-- Conversation View -->
+      <div id="view-chat" class="conversation">
+        <div class="conv-header">
+          <button class="back-btn" onclick="goBack()" title="Voltar">&#8592;</button>
+          <div class="conv-agent">
+            <div class="conv-agent-name" id="chatAgentName">—</div>
+            <div class="conv-agent-status" id="chatAgentStatus">Conectando...</div>
+          </div>
+          <button class="stop-btn" id="btnStop" onclick="toggleConversation()" data-running="1" title="Parar/Iniciar conversa">Parar</button>
+        </div>
 
-    <section id="tab-status" class="tab">
-      <div class="panel">
-        <div class="row" style="justify-content: space-between">
-          <strong>Estado geral</strong>
-          <div class="row" style="margin: 0">
-            <button class="action" onclick="refreshStatus()">Atualizar</button>
-            <button class="action" style="color: var(--warn)" onclick="restartBridge()">Reiniciar</button>
+        <div class="chat-area" id="chatArea">
+          <div class="chat-placeholder" id="chatPlaceholder">
+            <div>
+              <div style="font-size: 3rem; margin-bottom: 1rem; opacity: 0.3;">&#127908;</div>
+              <div>Comece a falar...</div>
+              <div style="font-size: 0.8rem; margin-top: 0.5rem;">O microfone esta ativo</div>
+            </div>
           </div>
         </div>
-        <div class="grid" id="statusGrid"></div>
-      </div>
 
-      <div class="panel">
-        <div class="row" style="justify-content: space-between">
-          <strong>Auto-conectar BLE</strong>
-          <button class="action primary" id="btnAuto" onclick="toggleAuto()">…</button>
+        <div class="phase-indicator" id="phaseIndicator">
+          <span class="phase-icon" id="phaseIcon">&#128266;</span>
+          <span class="phase-text" id="phaseText">Ouvindo...</span>
+          <span class="phase-timeout" id="phaseTimeout" style="margin-left: auto; font-size: 0.75rem; color: var(--subtle);"></span>
         </div>
-        <div class="grid" id="autoGrid"></div>
-      </div>
-    </section>
 
-    <section id="tab-chat" class="tab hide">
-      <div class="panel">
-        <div class="row" style="justify-content: space-between">
-          <strong>OpenAI Realtime</strong>
-          <div class="row" style="margin: 0">
-            <span id="chatPhase">…</span>
-            <button class="action" id="btnChatStart" onclick="startChat()">Iniciar</button>
-            <button class="action" id="btnChatStop" onclick="stopChat()">Parar</button>
+        <!-- Settings panel -->
+        <div class="settings-panel" id="settingsPanel" style="display: none;">
+          <div class="settings-row">
+            <label>Volume Voz</label>
+            <input type="range" id="sliderVolume" min="0" max="100" value="100" style="flex:1;">
+            <span id="volumeValue">100%</span>
+          </div>
+          <div class="settings-row">
+            <label>Ganho Mic</label>
+            <input type="range" id="sliderMicGain" min="10" max="100" value="40" style="flex:1;">
+            <span id="micGainValue">4.0x</span>
+          </div>
+          <div class="settings-row">
+            <label>Cooldown</label>
+            <input type="range" id="sliderCooldown" min="500" max="3000" step="100" value="1500" style="flex:1;">
+            <span id="cooldownValue">1.5s</span>
           </div>
         </div>
-        <div class="grid" id="chatGrid" style="margin-top: 0.5rem"></div>
-      </div>
 
-      <div class="panel">
-        <div class="row">
-          <label>Agente</label>
-          <select id="agentSelect" onchange="selectAgent(this.value)" style="min-width: 220px">
-            <option value="">— carregando —</option>
-          </select>
-          <small id="agentMsg" style="color: var(--muted)"></small>
-        </div>
-        <div class="sub" style="font-size: 0.75rem; margin-top: 0.4rem">
-          Lista vem do admin cloud. Trocar de agente reabre a conexão com a voice/instructions novas.
-        </div>
+        <button class="settings-toggle" id="btnSettings" onclick="toggleSettings()">&#9881; Config</button>
       </div>
-
-      <div class="panel">
-        <strong>Última fala (você)</strong>
-        <div id="chatUser" style="margin-top: 0.5rem; color: var(--muted); font-style: italic">—</div>
-      </div>
-      <div class="panel">
-        <strong>Última resposta (Robert)</strong>
-        <div id="chatBot" style="margin-top: 0.5rem">—</div>
-      </div>
-    </section>
-
-    <section id="tab-tv" class="tab hide">
-      <div class="panel">
-        <div class="row" style="justify-content: space-between">
-          <strong>TV</strong>
-          <button class="action" onclick="refreshTv()">Atualizar</button>
-        </div>
-        <div class="grid" id="tvStatusGrid" style="margin-top: 0.5rem"></div>
-      </div>
-
-      <div class="panel">
-        <strong>Ações manuais</strong>
-        <div class="row" style="margin-top: 0.5rem">
-          <label>URL livre</label>
-          <input type="text" id="tvUrl" placeholder="https://... (YouTube, imagem, página)" />
-          <button class="action primary" onclick="tvShowUrl()">Mostrar</button>
-        </div>
-        <div class="row">
-          <button class="action" onclick="tvClear()">Limpar</button>
-        </div>
-        <small id="tvMsg"></small>
-      </div>
-
-      <div class="panel">
-        <strong>Biblioteca do agente atual</strong>
-        <div class="sub" style="font-size: 0.8rem; margin: 0.25rem 0 0.5rem">
-          Tópicos configurados no admin. A IA pode usar via tool-calling, ou você testa manualmente.
-        </div>
-        <div id="tvLibrary"></div>
-      </div>
-    </section>
-
-    <section id="tab-ble" class="tab hide">
-      <div class="panel">
-        <div class="row">
-          <strong>Scan BLE</strong>
-          <input type="number" id="scanDuration" value="5000" min="1000" max="20000" />
-          <span style="color: var(--muted); font-size: 0.8rem">ms</span>
-          <button class="action primary" id="btnScan" onclick="runScan()">Escanear</button>
-        </div>
-        <table id="scanTable">
-          <thead><tr><th>Nome</th><th>Endereço</th><th>RSSI</th><th></th></tr></thead>
-          <tbody><tr><td colspan="4" style="color: var(--muted)">Nenhum scan executado ainda.</td></tr></tbody>
-        </table>
-      </div>
-
-      <div class="panel">
-        <div class="row">
-          <label>Endereço</label>
-          <input type="text" id="connectAddr" placeholder="00:11:22:... ou UUID" />
-          <button class="action primary" onclick="doConnect()">Conectar</button>
-          <button class="action" onclick="doDisconnect()">Desconectar</button>
-        </div>
-        <small id="bleMsg"></small>
-      </div>
-    </section>
-
-    <section id="tab-robot" class="tab hide">
-      <div class="panel">
-        <strong>Movimento</strong>
-        <div class="row" style="margin-top: 0.5rem">
-          <label>Velocidade</label>
-          <select id="speedLevel">
-            <option value="0">0 (padrão)</option><option value="1">1</option>
-            <option value="2">2</option><option value="3">3 (rápido)</option>
-          </select>
-          <label>Cor LED</label>
-          <select id="ledColor">
-            <option value="1">Dark Blue</option><option value="2" selected>Blue</option>
-            <option value="3">Green</option><option value="4">Yellow</option>
-            <option value="5">Red</option><option value="6">Purple</option>
-            <option value="7">White</option>
-          </select>
-        </div>
-        <div class="row">
-          <button class="action" onclick="cmdMove('up')">↑ up</button>
-          <button class="action" onclick="cmdMove('down')">↓ down</button>
-          <button class="action" onclick="cmdMove('left')">← left</button>
-          <button class="action" onclick="cmdMove('right')">→ right</button>
-          <button class="action primary" onclick="cmdStop()">⏹ stop</button>
-        </div>
-      </div>
-
-      <div class="panel">
-        <strong>Action code</strong>
-        <div class="sub" style="font-size:0.8rem;margin:0.25rem 0 0.5rem">Dance 1-93, arms 100-110, legs 200-235, stop=77.</div>
-        <div class="row">
-          <label>Code</label>
-          <input type="number" id="actionCode" value="50" min="1" max="235" />
-          <button class="action primary" onclick="cmdAction()">Executar</button>
-        </div>
-      </div>
-
-      <div class="panel">
-        <strong>Só cor (sem mover)</strong>
-        <div class="row">
-          <button class="action" onclick="cmdColor(1)" style="color:#1e40af">Dark Blue</button>
-          <button class="action" onclick="cmdColor(2)" style="color:#3b82f6">Blue</button>
-          <button class="action" onclick="cmdColor(3)" style="color:#10b981">Green</button>
-          <button class="action" onclick="cmdColor(4)" style="color:#eab308">Yellow</button>
-          <button class="action" onclick="cmdColor(5)" style="color:#ef4444">Red</button>
-          <button class="action" onclick="cmdColor(6)" style="color:#a855f7">Purple</button>
-          <button class="action" onclick="cmdColor(7)">White</button>
-        </div>
-      </div>
-
-      <small id="robotMsg"></small>
-    </section>
-
-    <section id="tab-audio" class="tab hide">
-      <div class="panel">
-        <strong>Speaker — tom de teste</strong>
-        <div class="row" style="margin-top: 0.5rem">
-          <label>Frequência</label>
-          <input type="number" id="toneHz" value="440" min="50" max="8000" />
-          <label>Duração</label>
-          <input type="number" id="toneMs" value="800" min="100" max="5000" />
-          <button class="action primary" onclick="playTone()">Tocar</button>
-        </div>
-      </div>
-
-      <div class="panel">
-        <strong>Microfone — medir nível</strong>
-        <div class="row" style="margin-top: 0.5rem">
-          <label>Duração</label>
-          <input type="number" id="micMs" value="2000" min="500" max="10000" />
-          <button class="action primary" id="btnMic" onclick="recordMic()">Gravar</button>
-        </div>
-        <div id="micResult" class="hide">
-          <div class="row"><label>RMS</label><div class="bar" style="width:220px"><div id="barRms" style="width:0%"></div></div><span id="rmsVal">—</span></div>
-          <div class="row"><label>Peak</label><div class="bar" style="width:220px"><div id="barPeak" style="width:0%"></div></div><span id="peakVal">—</span></div>
-          <div class="row"><label>Bytes</label><span id="bytesVal">—</span></div>
-        </div>
-      </div>
-      <small id="audioMsg"></small>
-    </section>
+    </div>
 
     <script>
-      const tabs = document.querySelectorAll('.tabs button');
-      tabs.forEach(t => t.addEventListener('click', () => {
-        tabs.forEach(x => x.classList.remove('active'));
-        t.classList.add('active');
-        document.querySelectorAll('.tab').forEach(s => s.classList.add('hide'));
-        document.getElementById('tab-' + t.dataset.tab).classList.remove('hide');
-      }));
+      // State
+      let agents = [];
+      let currentAgentId = null;
+      let isInChat = false;
+      let lastStatus = null;
+      // Conversation history
+      let chatHistory = [];
+      let lastSeenUserText = null;
+      let lastSeenAssistantText = null;
+      // Session timeout tracking
+      let lastSeenSessionTimeout = null;
 
+      // API helper
       async function api(path, opts = {}) {
         const res = await fetch(path, {
           method: opts.method || 'GET',
@@ -284,344 +296,331 @@
           body: opts.body ? JSON.stringify(opts.body) : undefined,
         });
         const text = await res.text();
-        let data; try { data = JSON.parse(text); } catch { data = { raw: text }; }
+        let data;
+        try { data = JSON.parse(text); } catch { data = { raw: text }; }
         if (!res.ok) throw new Error(data?.error || `HTTP ${res.status}`);
         return data;
       }
 
-      function pill(state, label) {
-        return `<span class="pill ${state}">${label}</span>`;
+      // Render agents
+      function renderAgents() {
+        const container = document.getElementById('agentList');
+        if (agents.length === 0) {
+          container.innerHTML = `
+            <div class="empty" style="grid-column: 1/-1;">
+              <div class="empty-icon">&#129302;</div>
+              <div>Nenhum agente configurado</div>
+              <div style="font-size: 0.8rem; margin-top: 0.5rem;">
+                Acesse <a href="/admin" style="color: var(--accent)">configuracoes</a> para criar um
+              </div>
+            </div>
+          `;
+          return;
+        }
+
+        container.innerHTML = agents.map(agent => `
+          <div class="agent-card ${agent.id === currentAgentId ? 'selected' : ''}"
+               onclick="selectAgent('${agent.id}')"
+               data-agent-id="${agent.id}">
+            <div class="agent-avatar">${agent.name.charAt(0).toUpperCase()}</div>
+            <div class="agent-name">${agent.name}</div>
+            <div class="agent-desc">${(agent.personality || '').slice(0, 50)}${agent.personality?.length > 50 ? '...' : ''}</div>
+          </div>
+        `).join('');
       }
 
-      function fmtTime(iso) {
-        if (!iso) return '—';
-        const d = new Date(iso);
-        const diff = Math.max(0, Math.floor((Date.now() - d.getTime()) / 1000));
-        if (diff < 60) return `${diff}s atrás`;
-        if (diff < 3600) return `${Math.floor(diff/60)}min atrás`;
-        return d.toLocaleTimeString();
-      }
+      // Update status bar
+      function updateStatusBar(status) {
+        const bar = document.getElementById('statusBar');
+        const dot = bar.querySelector('.status-dot');
+        const text = bar.querySelector('span:last-child');
 
-      async function refreshStatus() {
-        try {
-          const s = await api('/api/status');
-          document.getElementById('bridgeName').textContent = s.bridge.name;
-          const grid = document.getElementById('statusGrid');
-          const ac = s.autoConnect;
-          let autoLabel;
-          if (!ac.enabled) autoLabel = pill('muted', 'desligado');
-          else if (ac.running) autoLabel = pill('warn', 'escaneando…');
-          else autoLabel = pill('ok', 'ativo');
-          grid.innerHTML = `
-            <div>Bridge</div><div>${s.bridge.name} · v${s.bridge.version}</div>
-            <div>Token</div><div><code>${s.bridge.token}</code></div>
-            <div>WS cloud</div><div>${s.ws.connected ? pill('ok', 'conectado') : pill('err', 'offline')} <code style="color:var(--muted)">${s.ws.url}</code></div>
-            <div>BLE</div><div>${s.ble.connected ? pill('ok', 'conectado') : pill('muted', 'desconectado')}</div>
-            <div>Auto-connect</div><div>${autoLabel}</div>
-            <div>Realtime</div><div>${realtimePill(s.realtime)}</div>
-            <div>Áudio</div><div>${s.audio.recording ? pill('warn', 'gravando') : pill('muted', 'ocioso')}</div>
-          `;
+        if (!status) {
+          dot.className = 'status-dot muted';
+          text.textContent = 'Verificando...';
+          return;
+        }
 
-          const autoGrid = document.getElementById('autoGrid');
-          autoGrid.innerHTML = `
-            <div>Último scan</div><div>${fmtTime(ac.lastAttemptAt)}</div>
-            <div>Última conexão</div><div>${fmtTime(ac.lastConnectedAt)}</div>
-            <div>Último erro</div><div>${ac.lastError ? `<small class="err">${ac.lastError}</small>` : '<span style="color:var(--muted)">—</span>'}</div>
-          `;
-          const btn = document.getElementById('btnAuto');
-          btn.textContent = ac.enabled ? 'Desligar auto' : 'Ligar auto';
-          btn.dataset.enabled = ac.enabled ? '1' : '0';
-
-          renderChat(s.realtime);
-        } catch (e) {
-          document.getElementById('statusGrid').innerHTML = `<div>Erro</div><div><small class="err">${e.message}</small></div>`;
+        if (status.ws?.connected && status.ble?.connected) {
+          dot.className = 'status-dot ok';
+          text.textContent = 'Conectado';
+        } else if (status.ws?.connected) {
+          dot.className = 'status-dot warn';
+          text.textContent = status.autoConnect?.running ? 'Conectando robo...' : 'Robo desconectado';
+        } else {
+          dot.className = 'status-dot err';
+          text.textContent = 'Sem conexao';
         }
       }
 
-      function realtimePill(r) {
-        if (!r.enabled) return pill('muted', 'desligado');
-        const map = {
-          idle: ['muted', 'ocioso'],
-          connecting: ['warn', 'conectando…'],
-          listening: ['ok', 'ouvindo'],
-          thinking: ['warn', 'pensando…'],
-          speaking: ['ok', 'falando'],
-          error: ['err', 'erro'],
+      // Update phase indicator
+      function updatePhase(realtime) {
+        const icon = document.getElementById('phaseIcon');
+        const text = document.getElementById('phaseText');
+        const timeout = document.getElementById('phaseTimeout');
+
+        if (!realtime || !realtime.enabled) {
+          icon.textContent = '...';
+          text.textContent = 'Iniciando...';
+          text.className = 'phase-text';
+          timeout.textContent = '';
+          return;
+        }
+
+        const phases = {
+          idle: ['&#128266;', 'Pronto', false],
+          connecting: ['&#8987;', 'Conectando...', false],
+          listening: ['&#127908;', 'Ouvindo...', true],
+          thinking: ['&#129504;', 'Pensando...', true],
+          speaking: ['&#128483;', 'Falando...', true],
+          error: ['&#9888;', 'Erro', false],
         };
-        const [cls, label] = map[r.phase] ?? ['muted', r.phase];
-        return pill(cls, label);
-      }
 
-      function renderChat(r) {
-        document.getElementById('chatPhase').innerHTML = realtimePill(r);
-        const grid = document.getElementById('chatGrid');
-        grid.innerHTML = `
-          <div>Estado</div><div>${r.enabled ? 'ligado' : 'desligado'}</div>
-          <div>WS OpenAI</div><div>${r.connected ? pill('ok', 'conectado') : pill('muted', 'offline')}</div>
-          <div>Erro</div><div>${r.lastError ? `<small class="err">${r.lastError}</small>` : '<span style="color:var(--muted)">—</span>'}</div>
-        `;
-        document.getElementById('chatUser').textContent = r.lastUserText ?? '—';
-        document.getElementById('chatBot').textContent = r.lastAssistantText ?? '—';
-      }
+        const [ic, tx, active] = phases[realtime.phase] || ['&#128266;', realtime.phase, false];
+        icon.innerHTML = ic;
+        text.textContent = tx;
+        text.className = active ? 'phase-text active' : 'phase-text';
 
-      async function refreshAgents() {
-        try {
-          const data = await api('/api/agents');
-          const sel = document.getElementById('agentSelect');
-          if (!data.agents.length) {
-            sel.innerHTML = '<option value="">— nenhum agente cadastrado —</option>';
-            return;
-          }
-          sel.innerHTML = data.agents
-            .map(a => `<option value="${a.id}" ${a.id === data.currentAgentId ? 'selected' : ''}>${a.name} · ${a.voice}</option>`)
-            .join('');
-        } catch (e) {
-          document.getElementById('agentMsg').textContent = 'Erro: ' + e.message;
+        // Show session timeout
+        if (realtime.sessionTimeoutMs > 0) {
+          const secs = Math.round(realtime.sessionTimeoutMs / 1000);
+          timeout.textContent = `Reset: ${secs}s`;
+        } else {
+          timeout.textContent = '';
         }
       }
 
+      // Update chat bubbles - keeps conversation history
+      function updateChat(realtime) {
+        if (!realtime) return;
+
+        const placeholder = document.getElementById('chatPlaceholder');
+        const area = document.getElementById('chatArea');
+
+        // Detect session reset: realtime cleared lastUserText/lastAssistantText
+        // while we had previous history
+        if (!realtime.lastUserText && !realtime.lastAssistantText &&
+            (lastSeenUserText || lastSeenAssistantText) && chatHistory.length > 0) {
+          console.log('[session] detected session reset by timeout');
+          clearChatHistory();
+        }
+
+        // Check for new user message
+        if (realtime.lastUserText && realtime.lastUserText !== lastSeenUserText) {
+          lastSeenUserText = realtime.lastUserText;
+          chatHistory.push({ role: 'user', text: realtime.lastUserText });
+
+          placeholder.classList.add('hide');
+          const bubble = document.createElement('div');
+          bubble.className = 'chat-bubble user';
+          bubble.textContent = realtime.lastUserText;
+          area.appendChild(bubble);
+          area.scrollTop = area.scrollHeight;
+        }
+
+        // Check for new assistant message
+        if (realtime.lastAssistantText && realtime.lastAssistantText !== lastSeenAssistantText) {
+          lastSeenAssistantText = realtime.lastAssistantText;
+          chatHistory.push({ role: 'assistant', text: realtime.lastAssistantText });
+
+          placeholder.classList.add('hide');
+          const bubble = document.createElement('div');
+          bubble.className = 'chat-bubble assistant';
+          bubble.textContent = realtime.lastAssistantText;
+          area.appendChild(bubble);
+          area.scrollTop = area.scrollHeight;
+        }
+      }
+
+      // Clear chat history when switching agents
+      function clearChatHistory() {
+        chatHistory = [];
+        lastSeenUserText = null;
+        lastSeenAssistantText = null;
+        const area = document.getElementById('chatArea');
+        area.querySelectorAll('.chat-bubble').forEach(el => el.remove());
+        document.getElementById('chatPlaceholder').classList.remove('hide');
+      }
+
+      // Select agent and start chat
       async function selectAgent(agentId) {
-        if (!agentId) return;
-        const msg = document.getElementById('agentMsg');
-        msg.style.color = 'var(--muted)'; msg.textContent = 'Trocando…';
+        const agent = agents.find(a => a.id === agentId);
+        if (!agent) return;
+
+        currentAgentId = agentId;
+
+        // Switch to chat view
+        document.getElementById('view-select').classList.add('hide');
+        document.getElementById('view-chat').classList.remove('hide');
+        document.getElementById('view-chat').classList.add('active');
+        isInChat = true;
+
+        // Update header
+        document.getElementById('chatAgentName').textContent = agent.name;
+        document.getElementById('chatAgentStatus').textContent = 'Conectando...';
+
+        // Reset chat history
+        clearChatHistory();
+
         try {
+          // Set agent
           await api('/api/realtime/agent', { method: 'POST', body: { agentId } });
-          msg.style.color = 'var(--ok)'; msg.textContent = 'Trocado.';
-          refreshStatus();
-          setTimeout(() => { msg.textContent = ''; }, 2000);
+          // Start realtime
+          await api('/api/realtime/start', { method: 'POST' });
+          document.getElementById('chatAgentStatus').textContent = 'Ativo';
         } catch (e) {
-          msg.style.color = 'var(--err)'; msg.textContent = 'Erro: ' + e.message;
+          document.getElementById('chatAgentStatus').textContent = 'Erro: ' + e.message;
         }
       }
 
-      async function startChat() {
-        try { const s = await api('/api/realtime/start', { method: 'POST' }); renderChat(s); refreshStatus(); }
-        catch (e) { alert('Falha: ' + e.message); }
-      }
-      async function stopChat() {
-        try { const s = await api('/api/realtime/stop', { method: 'POST' }); renderChat(s); refreshStatus(); }
-        catch (e) { alert('Falha: ' + e.message); }
-      }
-
-      async function restartBridge() {
-        if (!confirm('Reiniciar o bridge (daemon local + UI :3100)? ~5s indisponível.')) return;
-        try {
-          await api('/api/admin/restart', { method: 'POST' });
-        } catch (e) { /* connection will close during restart — expected */ }
-        document.body.style.opacity = '0.4';
-        document.body.style.pointerEvents = 'none';
-        // Poll for the bridge coming back up, then reload.
-        const start = Date.now();
-        const waitUp = async () => {
-          if (Date.now() - start > 30000) {
-            alert('Bridge não voltou em 30s. Verifique o terminal.');
-            location.reload();
-            return;
-          }
-          try {
-            const res = await fetch('/api/status', { cache: 'no-store' });
-            if (res.ok) { location.reload(); return; }
-          } catch {}
-          setTimeout(waitUp, 500);
-        };
-        setTimeout(waitUp, 1500);
-      }
-
-      async function toggleAuto() {
-        const btn = document.getElementById('btnAuto');
-        const next = btn.dataset.enabled !== '1';
+      // Toggle conversation (start/stop)
+      async function toggleConversation() {
+        const btn = document.getElementById('btnStop');
+        const isRunning = btn.dataset.running === '1';
         btn.disabled = true;
+
         try {
-          await api('/api/ble/auto', { method: 'POST', body: { enabled: next } });
-          await refreshStatus();
+          if (isRunning) {
+            btn.textContent = 'Parando...';
+            // Stop audio playback immediately
+            resetPlayback();
+            await api('/api/realtime/stop', { method: 'POST' });
+            document.getElementById('chatAgentStatus').textContent = 'Parado';
+            btn.dataset.running = '0';
+            btn.textContent = 'Iniciar';
+            btn.style.background = 'var(--ok)';
+          } else {
+            btn.textContent = 'Iniciando...';
+            await api('/api/realtime/start', { method: 'POST' });
+            document.getElementById('chatAgentStatus').textContent = 'Ativo';
+            btn.dataset.running = '1';
+            btn.textContent = 'Parar';
+            btn.style.background = 'var(--err)';
+          }
         } catch (e) {
-          alert('Falha: ' + e.message);
+          console.error('Error toggling:', e);
+          document.getElementById('chatAgentStatus').textContent = 'Erro';
         } finally {
           btn.disabled = false;
         }
       }
 
-      async function runScan() {
-        const btn = document.getElementById('btnScan');
-        btn.disabled = true; btn.textContent = 'Escaneando…';
+      // Go back to agent selection
+      async function goBack() {
+        isInChat = false;
+        document.getElementById('view-chat').classList.add('hide');
+        document.getElementById('view-chat').classList.remove('active');
+        document.getElementById('view-select').classList.remove('hide');
+
+        // Stop realtime
         try {
-          const duration = parseInt(document.getElementById('scanDuration').value, 10);
-          const { devices } = await api('/api/ble/scan', { method: 'POST', body: { durationMs: duration } });
-          const tbody = document.querySelector('#scanTable tbody');
-          if (!devices.length) {
-            tbody.innerHTML = '<tr><td colspan="4" style="color:var(--muted)">Nenhum Robert encontrado.</td></tr>';
-          } else {
-            tbody.innerHTML = devices.map(d => `
-              <tr>
-                <td>${d.name ?? '<i style="color:var(--muted)">—</i>'}</td>
-                <td><code>${d.address}</code></td>
-                <td>${d.rssi}</td>
-                <td><button class="action" onclick="pickAddr('${d.address}')">Usar</button></td>
-              </tr>
-            `).join('');
+          await api('/api/realtime/stop', { method: 'POST' });
+        } catch (e) {
+          console.error('Error stopping realtime:', e);
+        }
+
+        // Clear chat history
+        clearChatHistory();
+
+        renderAgents();
+      }
+
+      // Load agents
+      async function loadAgents() {
+        try {
+          const data = await api('/api/agents');
+          agents = data.agents || [];
+          currentAgentId = data.currentAgentId || null;
+          renderAgents();
+        } catch (e) {
+          console.error('Error loading agents:', e);
+          document.getElementById('agentList').innerHTML = `
+            <div class="empty" style="grid-column: 1/-1;">
+              <div class="empty-icon">&#9888;</div>
+              <div>Erro ao carregar agentes</div>
+              <div style="font-size: 0.8rem; margin-top: 0.5rem;">${e.message}</div>
+            </div>
+          `;
+        }
+      }
+
+      // Load status
+      async function loadStatus() {
+        try {
+          const status = await api('/api/status');
+          lastStatus = status;
+          updateStatusBar(status);
+
+          if (isInChat) {
+            updatePhase(status.realtime);
+            updateChat(status.realtime);
+
+            // Update agent status in header
+            const agentStatus = document.getElementById('chatAgentStatus');
+            const stopBtn = document.getElementById('btnStop');
+            if (status.realtime?.enabled) {
+              agentStatus.textContent = status.realtime.connected ? 'Ativo' : 'Reconectando...';
+              stopBtn.dataset.running = '1';
+              stopBtn.textContent = 'Parar';
+              stopBtn.style.background = 'var(--err)';
+            } else {
+              agentStatus.textContent = 'Parado';
+              stopBtn.dataset.running = '0';
+              stopBtn.textContent = 'Iniciar';
+              stopBtn.style.background = 'var(--ok)';
+            }
           }
         } catch (e) {
-          alert('Scan falhou: ' + e.message);
-        } finally {
-          btn.disabled = false; btn.textContent = 'Escanear';
+          console.error('Error loading status:', e);
+          updateStatusBar(null);
         }
       }
 
-      function pickAddr(a) { document.getElementById('connectAddr').value = a; }
-
-      async function doConnect() {
-        const addr = document.getElementById('connectAddr').value.trim();
-        if (!addr) return;
-        const msg = document.getElementById('bleMsg');
-        msg.className = ''; msg.textContent = 'Conectando…';
-        try {
-          await api('/api/ble/connect', { method: 'POST', body: { address: addr } });
-          msg.className = 'ok'; msg.textContent = 'Conectado.';
-          refreshStatus();
-        } catch (e) {
-          msg.className = 'err'; msg.textContent = 'Erro: ' + e.message;
-        }
-      }
-
-      async function doDisconnect() {
-        const msg = document.getElementById('bleMsg');
-        msg.className = ''; msg.textContent = 'Desconectando…';
-        try {
-          await api('/api/ble/disconnect', { method: 'POST' });
-          msg.className = 'ok'; msg.textContent = 'Desconectado.';
-          refreshStatus();
-        } catch (e) {
-          msg.className = 'err'; msg.textContent = 'Erro: ' + e.message;
-        }
-      }
-
-      function robotOpts() {
-        return {
-          speedLevel: parseInt(document.getElementById('speedLevel').value, 10),
-          color: parseInt(document.getElementById('ledColor').value, 10),
-        };
-      }
-      async function sendCmd(body) {
-        const msg = document.getElementById('robotMsg');
-        msg.className = ''; msg.textContent = 'Enviando…';
-        try {
-          const r = await api('/api/robot/command', { method: 'POST', body });
-          msg.className = 'ok'; msg.textContent = `OK (${r.bytes} bytes)`;
-        } catch (e) {
-          msg.className = 'err'; msg.textContent = 'Erro: ' + e.message;
-        }
-      }
-      function cmdMove(direction) { sendCmd({ type: 'move', direction, ...robotOpts() }); }
-      function cmdAction() {
-        const action = parseInt(document.getElementById('actionCode').value, 10);
-        sendCmd({ type: 'action', action, ...robotOpts() });
-      }
-      function cmdStop() { sendCmd({ type: 'stop' }); }
-      function cmdColor(c) { sendCmd({ type: 'color', color: c }); }
-
-      async function playTone() {
-        const frequencyHz = parseInt(document.getElementById('toneHz').value, 10);
-        const durationMs = parseInt(document.getElementById('toneMs').value, 10);
-        const msg = document.getElementById('audioMsg');
-        msg.className = ''; msg.textContent = 'Tocando…';
-        try {
-          await api('/api/audio/tone', { method: 'POST', body: { frequencyHz, durationMs } });
-          msg.className = 'ok'; msg.textContent = 'Tom enviado.';
-        } catch (e) {
-          msg.className = 'err'; msg.textContent = 'Erro: ' + e.message;
-        }
-      }
-
-      async function recordMic() {
-        const durationMs = parseInt(document.getElementById('micMs').value, 10);
-        const btn = document.getElementById('btnMic');
-        const msg = document.getElementById('audioMsg');
-        btn.disabled = true; btn.textContent = 'Gravando…';
-        msg.className = ''; msg.textContent = '';
-        try {
-          const r = await api('/api/audio/mic', { method: 'POST', body: { durationMs } });
-          document.getElementById('micResult').classList.remove('hide');
-          document.getElementById('barRms').style.width = (r.rms * 100).toFixed(1) + '%';
-          document.getElementById('barPeak').style.width = (r.peak * 100).toFixed(1) + '%';
-          document.getElementById('rmsVal').textContent = r.rms.toFixed(4);
-          document.getElementById('peakVal').textContent = r.peak.toFixed(4);
-          document.getElementById('bytesVal').textContent = r.bytes.toLocaleString();
-        } catch (e) {
-          msg.className = 'err'; msg.textContent = 'Erro: ' + e.message;
-        } finally {
-          btn.disabled = false; btn.textContent = 'Gravar';
-        }
-      }
-
-      function applyTestMode(on) {
-        document.querySelectorAll('.tab-hardware').forEach(el => el.style.display = on ? 'none' : '');
-        // If we're on a hidden tab, jump back to Conversa.
-        const active = document.querySelector('.tabs button.active');
-        if (on && active && active.classList.contains('tab-hardware')) {
-          document.querySelector('.tabs button[data-tab="chat"]').click();
-        }
-      }
-      async function toggleTestMode(on) {
-        localStorage.setItem('testMode', on ? '1' : '0');
-        applyTestMode(on);
-        try {
-          await api('/api/ble/auto', { method: 'POST', body: { enabled: !on } });
-          if (on) await api('/api/ble/disconnect', { method: 'POST' });
-        } catch (e) { /* BLE may already be off */ }
-        refreshStatus();
-      }
-      (function initTestMode() {
-        const saved = localStorage.getItem('testMode') === '1';
-        document.getElementById('testMode').checked = saved;
-        applyTestMode(saved);
-        if (saved) toggleTestMode(true);
-      })();
-
-      // --- Browser audio I/O ----------------------------------------------
-      // Playback: Web Audio at native 24kHz (no resample, no clicks).
-      // Capture:  getUserMedia with echoCancellation + noiseSuppression,
-      //           downsampled to 24kHz PCM16 and sent as WS binary frames.
-      // Running both in the browser is what lets WebRTC's hardware AEC
-      // subtract the speaker output from the mic feed — that's the fix
-      // for the self-echo loop that sox had no answer for.
+      // ============ Browser Audio I/O ============
       let audioCtx = null;
       let nextStartAt = 0;
       let micStream = null;
       let micProcessor = null;
       let micSource = null;
       let audioWs = null;
-      // Playback pipe: BufferSource → MediaStreamDestination → <audio>.
-      // Chrome's AEC only cancels speaker output that it can see in a
-      // MediaStream; audio from `AudioContext.destination` directly is
-      // invisible to AEC and leaks into the mic capture. Routing through
-      // a MediaStream wired to a hidden <audio> element puts the playback
-      // on the AEC's reference signal.
       let outDest = null;
       let outAudioEl = null;
       let activeSources = [];
+      let idleSent = true;
+      let idleCheckTimer = null;
+      let gainNode = null;
+      let speakerVolume = 1.0;
+      let micGainValue = 1.0;
 
       function ensureAudioCtx() {
         if (audioCtx && audioCtx.state !== 'closed') return audioCtx;
         audioCtx = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: 24000 });
         nextStartAt = audioCtx.currentTime;
+        // Create gain node for volume control
+        gainNode = audioCtx.createGain();
+        gainNode.gain.value = speakerVolume;
         outDest = audioCtx.createMediaStreamDestination();
+        gainNode.connect(outDest);
         outAudioEl = new Audio();
         outAudioEl.autoplay = true;
         outAudioEl.srcObject = outDest.stream;
         outAudioEl.style.display = 'none';
         document.body.appendChild(outAudioEl);
-        // Must call play() after user gesture; retry on suspend.
         outAudioEl.play().catch(() => {});
         return audioCtx;
       }
 
-      let idleSent = true;
-      let idleCheckTimer = null;
-      // Gap between OpenAI audio deltas can momentarily empty the playback
-      // queue; emitting idle instantly would make the TV clear mid-speech.
-      // Wait until we've been truly empty for ~600ms before signaling.
+      function setSpeakerVolume(vol) {
+        speakerVolume = Math.max(0, Math.min(1, vol));
+        if (gainNode) gainNode.gain.value = speakerVolume;
+      }
+
+      function setMicGain(gain) {
+        micGainValue = Math.max(0.1, gain);
+      }
+
       function maybeEmitIdle() {
-        if (idleCheckTimer) return; // already pending
+        if (idleCheckTimer) return;
         if (activeSources.length !== 0 || idleSent) return;
         if (!audioWs || audioWs.readyState !== WebSocket.OPEN) return;
         idleCheckTimer = setTimeout(() => {
@@ -641,20 +640,17 @@
         buf.getChannelData(0).set(f32);
         const src = ctx.createBufferSource();
         src.buffer = buf;
-        src.connect(outDest);
+        // Connect through gain node for volume control
+        src.connect(gainNode);
         const startAt = Math.max(nextStartAt, ctx.currentTime);
         src.start(startAt);
         nextStartAt = startAt + buf.duration;
         activeSources.push(src);
         idleSent = false;
-        // If a debounced idle check was pending from the last gap, cancel it.
         if (idleCheckTimer) { clearTimeout(idleCheckTimer); idleCheckTimer = null; }
         src.onended = () => {
           const idx = activeSources.indexOf(src);
           if (idx !== -1) activeSources.splice(idx, 1);
-          // When the final queued source finishes, tell the bridge — that's
-          // the moment when playback truly ended (not when OpenAI finished
-          // streaming, which can be several seconds earlier).
           maybeEmitIdle();
         };
       }
@@ -675,8 +671,6 @@
             audio: {
               channelCount: 1,
               sampleRate: 24000,
-              // AEC + NS on; AGC off so quiet echo residuals aren't boosted
-              // above VAD threshold. Gain is managed by system input volume.
               echoCancellation: true,
               noiseSuppression: true,
               autoGainControl: false,
@@ -684,13 +678,11 @@
           });
         } catch (e) {
           console.error('[mic] getUserMedia failed:', e);
-          alert('Não consegui acessar o mic. Permite acesso em System Settings → Privacy → Microphone e recarrega.');
+          alert('Nao consegui acessar o mic. Permite acesso e recarrega.');
           return;
         }
         const ctx = ensureAudioCtx();
         micSource = ctx.createMediaStreamSource(micStream);
-        // ScriptProcessor is deprecated but universally supported; AudioWorklet
-        // would be marginally cleaner but requires a separate module file.
         micProcessor = ctx.createScriptProcessor(4096, 1, 1);
         micProcessor.onaudioprocess = (ev) => {
           if (!audioWs || audioWs.readyState !== WebSocket.OPEN) return;
@@ -704,12 +696,11 @@
         };
         micSource.connect(micProcessor);
         micProcessor.connect(ctx.destination);
-        console.log('[mic] capturing via Web Audio (AEC on)');
       }
 
       function stopBrowserMic() {
         if (micProcessor) { try { micProcessor.disconnect(); } catch {} micProcessor = null; }
-        if (micSource)    { try { micSource.disconnect();    } catch {} micSource    = null; }
+        if (micSource) { try { micSource.disconnect(); } catch {} micSource = null; }
         if (micStream) {
           micStream.getTracks().forEach(t => t.stop());
           micStream = null;
@@ -740,79 +731,74 @@
         audioWs.onerror = () => audioWs.close();
       }
 
-      // Audio contexts need a user gesture to start. Unlock on first click.
+      // Unlock audio on first interaction
       document.addEventListener('click', () => {
         ensureAudioCtx();
         if (audioCtx.state === 'suspended') audioCtx.resume();
       }, { once: true });
-      connectAudioWs();
 
-      async function refreshTv() {
+      // ============ Settings Panel ============
+      function toggleSettings() {
+        const panel = document.getElementById('settingsPanel');
+        panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
+      }
+
+      async function loadSettings() {
         try {
-          const s = await api('/api/tv');
-          const grid = document.getElementById('tvStatusGrid');
-          const current = s.current ? `${s.current.kind}${s.current.title ? ' · ' + s.current.title : ''}` : '—';
-          grid.innerHTML = `
-            <div>URL para TV</div><div>${s.displayUrl ? `<a href="${s.displayUrl}" target="_blank" style="color:var(--accent)">${s.displayUrl}</a>` : '<span style="color:var(--muted)">bridgeId pendente</span>'}</div>
-            <div>Bridge ID</div><div><code style="color:var(--muted)">${s.bridgeId || '—'}</code></div>
-            <div>Exibindo</div><div>${current}</div>
-            <div>Último tópico</div><div>${s.lastTopic || '<span style="color:var(--muted)">—</span>'}</div>
-            <div>Atualizado</div><div>${s.lastUpdatedAt ? fmtTime(s.lastUpdatedAt) : '<span style="color:var(--muted)">—</span>'}</div>
-          `;
-          const lib = document.getElementById('tvLibrary');
-          if (!s.library || s.library.length === 0) {
-            lib.innerHTML = '<span style="color:var(--muted)">Biblioteca vazia. Adicione tópicos no admin cloud → Agents.</span>';
-          } else {
-            lib.innerHTML = s.library.map(item => `
-              <div class="row" style="border-bottom: 1px solid var(--border); padding: 0.5rem 0; margin: 0">
-                <div style="flex: 1">
-                  <div><strong>${item.topic}</strong> <span style="color:var(--muted);font-size:0.75rem">· ${item.kind}</span></div>
-                  <div style="font-size:0.75rem;color:var(--muted)">${item.title || item.url || item.text || ''}</div>
-                </div>
-                <button class="action" onclick="tvShowTopic('${item.topic.replace(/'/g, "\\'")}')">Mostrar</button>
-              </div>
-            `).join('');
-          }
+          const settings = await api('/api/audio/settings');
+          // Update sliders
+          document.getElementById('sliderVolume').value = Math.round(settings.speakerVolume * 100);
+          document.getElementById('volumeValue').textContent = Math.round(settings.speakerVolume * 100) + '%';
+          document.getElementById('sliderMicGain').value = Math.round(settings.micGain * 10);
+          document.getElementById('micGainValue').textContent = settings.micGain.toFixed(1) + 'x';
+          document.getElementById('sliderCooldown').value = settings.micCooldownMs;
+          document.getElementById('cooldownValue').textContent = (settings.micCooldownMs / 1000).toFixed(1) + 's';
+          // Apply to local audio
+          setSpeakerVolume(settings.speakerVolume);
+          setMicGain(settings.micGain);
         } catch (e) {
-          document.getElementById('tvStatusGrid').innerHTML = `<div>Erro</div><div><small class="err">${e.message}</small></div>`;
+          console.error('Error loading settings:', e);
         }
       }
 
-      async function tvShowTopic(topic) {
-        const msg = document.getElementById('tvMsg');
-        msg.className = ''; msg.textContent = 'Enviando…';
+      async function updateSetting(key, value) {
         try {
-          await api('/api/tv/show-topic', { method: 'POST', body: { topic } });
-          msg.className = 'ok'; msg.textContent = 'OK';
-          refreshTv();
-        } catch (e) { msg.className = 'err'; msg.textContent = 'Erro: ' + e.message; }
-      }
-      async function tvShowUrl() {
-        const url = document.getElementById('tvUrl').value.trim();
-        if (!url) return;
-        const msg = document.getElementById('tvMsg');
-        msg.className = ''; msg.textContent = 'Enviando…';
-        try {
-          await api('/api/tv/show-url', { method: 'POST', body: { url } });
-          msg.className = 'ok'; msg.textContent = 'OK';
-          refreshTv();
-        } catch (e) { msg.className = 'err'; msg.textContent = 'Erro: ' + e.message; }
-      }
-      async function tvClear() {
-        const msg = document.getElementById('tvMsg');
-        try {
-          await api('/api/tv/clear', { method: 'POST' });
-          msg.className = 'ok'; msg.textContent = 'TV limpa';
-          refreshTv();
-        } catch (e) { msg.className = 'err'; msg.textContent = 'Erro: ' + e.message; }
+          const body = {};
+          body[key] = value;
+          await api('/api/audio/settings', { method: 'POST', body });
+        } catch (e) {
+          console.error('Error updating setting:', e);
+        }
       }
 
-      refreshStatus();
-      refreshAgents();
-      refreshTv();
-      setInterval(refreshStatus, 4000);
-      setInterval(refreshAgents, 10_000);
-      setInterval(refreshTv, 6000);
+      // Setup slider listeners
+      document.getElementById('sliderVolume').addEventListener('input', function() {
+        const vol = this.value / 100;
+        document.getElementById('volumeValue').textContent = this.value + '%';
+        setSpeakerVolume(vol);
+        updateSetting('speakerVolume', vol);
+      });
+
+      document.getElementById('sliderMicGain').addEventListener('input', function() {
+        const gain = this.value / 10;
+        document.getElementById('micGainValue').textContent = gain.toFixed(1) + 'x';
+        setMicGain(gain);
+        updateSetting('micGain', gain);
+      });
+
+      document.getElementById('sliderCooldown').addEventListener('input', function() {
+        const ms = parseInt(this.value);
+        document.getElementById('cooldownValue').textContent = (ms / 1000).toFixed(1) + 's';
+        updateSetting('micCooldownMs', ms);
+      });
+
+      // Initialize
+      loadAgents();
+      loadStatus();
+      loadSettings();
+      connectAudioWs();
+      setInterval(loadStatus, 2000);
+      setInterval(loadAgents, 30000);
     </script>
   </body>
 </html>

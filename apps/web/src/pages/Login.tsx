@@ -31,7 +31,7 @@ export default function Login() {
   });
 
   if (isAuthenticated) {
-    return <Navigate to="/agents" replace />;
+    return <Navigate to="/admin/agents" replace />;
   }
 
   async function onSubmit(values: FormValues) {
@@ -40,7 +40,7 @@ export default function Login() {
     try {
       await login(values.email, values.password);
       toast.success("Bem-vindo!");
-      navigate("/agents", { replace: true });
+      navigate("/admin/agents", { replace: true });
     } catch (err) {
       const msg =
         err instanceof ApiError ? err.message : "Falha ao autenticar";

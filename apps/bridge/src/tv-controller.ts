@@ -168,4 +168,39 @@ export class TvController {
       return { ok: false, reason: (err as Error).message };
     }
   }
+
+  /**
+   * Register a new person with the pending face descriptor from face detection.
+   * The API stores the descriptor that was captured when the face was detected.
+   */
+  async registerPerson(name: string): Promise<{ ok: boolean; personId?: string; error?: string }> {
+    if (!this.bridgeId) {
+      return { ok: false, error: "no bridgeId yet" };
+    }
+
+    const url = `${this.opts.apiBaseUrl}/api/bridge/${this.bridgeId}/register-person`;
+    try {
+      const res = await fetch(url, {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          "x-bridge-token": this.opts.bridgeToken,
+        },
+        body: JSON.stringify({ name }),
+      });
+
+      if (!res.ok) {
+        const text = await res.text().catch(() => "");
+        logger.warn(`[tv] register-person HTTP ${res.status}: ${text}`);
+        return { ok: false, error: `HTTP ${res.status}: ${text}` };
+      }
+
+      const data = (await res.json()) as { id: string; name: string };
+      logger.info(`[tv] registered person: ${data.name} (id=${data.id})`);
+      return { ok: true, personId: data.id };
+    } catch (err) {
+      logger.warn(`[tv] register-person request failed: ${(err as Error).message}`);
+      return { ok: false, error: (err as Error).message };
+    }
+  }
 }

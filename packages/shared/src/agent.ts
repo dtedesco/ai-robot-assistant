@@ -112,3 +112,41 @@ export interface TranscriptEntry {
   text: string;
   ts: string;
 }
+
+export type Gender = "male" | "female" | "other";
+
+export interface PersonDTO {
+  id: string;
+  name: string;
+  photoUrl: string | null;
+  phone: string | null;
+  gender: Gender | null;
+  preferences: string[];
+  context: string | null;
+  createdAt: string;
+  updatedAt: string;
+  visitCount?: number;
+  conversationCount?: number;
+  lastVisit?: string | null;
+}
+
+export interface VisitDTO {
+  id: string;
+  personId: string;
+  agentId: string | null;
+  startedAt: string;
+  endedAt: string | null;
+  person: { id: string; name: string; photoUrl: string | null };
+  agent: { id: string; name: string } | null;
+}
+
+export interface ConversationDTO {
+  id: string;
+  personId: string | null;
+  agentId: string | null;
+  role: "user" | "assistant";
+  content: string;
+  timestamp: string;
+  person: { id: string; name: string; photoUrl: string | null } | null;
+  agent: { id: string; name: string } | null;
+}

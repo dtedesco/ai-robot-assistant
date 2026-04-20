@@ -1,6 +1,12 @@
 import { z } from "zod";
 import os from "node:os";
 
+/**
+ * Bridge configuration - BLE robot control only.
+ *
+ * Audio and realtime settings have been removed since those are now
+ * handled directly in the browser (RealtimeDisplay).
+ */
 const ConfigSchema = z.object({
   API_WS_URL: z.string().url(),
   BRIDGE_TOKEN: z.string().min(1),
@@ -13,13 +19,6 @@ const ConfigSchema = z.object({
     .default("true")
     .transform((v) => v === "true"),
   BLE_AUTO_INTERVAL_MS: z.coerce.number().int().positive().default(10_000),
-  REALTIME_AUTO_START: z
-    .enum(["true", "false"])
-    .default("true")
-    .transform((v) => v === "true"),
-  /** Software gain applied to mic PCM before sending to OpenAI (linear factor).
-   *  4.0 ≈ +12dB. Raise if your mic/device captures at low levels (peak < 0.15). */
-  MIC_GAIN: z.coerce.number().positive().default(4.0),
 });
 
 export type Config = z.infer<typeof ConfigSchema>;
@@ -34,8 +33,6 @@ export function loadConfig(): Config {
     LOCAL_HTTP_PORT: process.env.LOCAL_HTTP_PORT,
     BLE_AUTO_CONNECT: process.env.BLE_AUTO_CONNECT,
     BLE_AUTO_INTERVAL_MS: process.env.BLE_AUTO_INTERVAL_MS,
-    REALTIME_AUTO_START: process.env.REALTIME_AUTO_START,
-    MIC_GAIN: process.env.MIC_GAIN,
   });
 
   if (!parsed.success) {
@@ -50,4 +47,4 @@ export function loadConfig(): Config {
   return parsed.data;
 }
 
-export const BRIDGE_VERSION = "0.1.0";
+export const BRIDGE_VERSION = "0.2.0";

@@ -157,7 +157,7 @@ export default function SessionView() {
       <div>
         <PageHeader
           title="Sessão"
-          breadcrumbs={[{ label: "Sessões", to: "/sessions" }, { label: "Carregando" }]}
+          breadcrumbs={[{ label: "Sessões", to: "/admin/sessions" }, { label: "Carregando" }]}
         />
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="lg:col-span-2">
@@ -176,7 +176,7 @@ export default function SessionView() {
       <div>
         <PageHeader
           title="Sessão"
-          breadcrumbs={[{ label: "Sessões", to: "/sessions" }, { label: "Não encontrada" }]}
+          breadcrumbs={[{ label: "Sessões", to: "/admin/sessions" }, { label: "Não encontrada" }]}
         />
         <div className="card p-8 text-sm text-danger text-center">
           Sessão não encontrada.
@@ -200,7 +200,7 @@ export default function SessionView() {
       <PageHeader
         title={agentQuery.data?.name ?? "Sessão"}
         breadcrumbs={[
-          { label: "Sessões", to: "/sessions" },
+          { label: "Sessões", to: "/admin/sessions" },
           { label: agentQuery.data?.name ?? "Detalhes" },
         ]}
         subtitle={

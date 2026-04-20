@@ -1,0 +1,646 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Admin · Bridge Local</title>
+    <style>
+      :root {
+        --bg: #0e1116;
+        --panel: #151a22;
+        --border: #242b36;
+        --text: #e6e8eb;
+        --muted: #8a93a0;
+        --accent: #7dd3fc;
+        --ok: #34d399;
+        --warn: #fbbf24;
+        --err: #f87171;
+        --btn: #1f2937;
+        --btn-hover: #2c3646;
+      }
+      * { box-sizing: border-box; }
+      html, body { margin: 0; padding: 0; background: var(--bg); color: var(--text); font-family: ui-sans-serif, system-ui, -apple-system, sans-serif; }
+      body { max-width: 900px; margin: 0 auto; padding: 1.5rem; }
+      h1 { margin: 0 0 0.25rem 0; font-size: 1.25rem; }
+      .sub { color: var(--muted); font-size: 0.9rem; margin-bottom: 1.25rem; }
+      .tabs { display: flex; gap: 0.25rem; border-bottom: 1px solid var(--border); margin-bottom: 1rem; }
+      .tabs button { background: transparent; color: var(--muted); border: 0; padding: 0.6rem 1rem; cursor: pointer; font-size: 0.9rem; border-bottom: 2px solid transparent; }
+      .tabs button.active { color: var(--text); border-bottom-color: var(--accent); }
+      .panel { background: var(--panel); border: 1px solid var(--border); border-radius: 8px; padding: 1rem; margin-bottom: 1rem; }
+      .row { display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap; margin-bottom: 0.5rem; }
+      .row > label { min-width: 110px; color: var(--muted); font-size: 0.85rem; }
+      button.action { background: var(--btn); color: var(--text); border: 1px solid var(--border); border-radius: 6px; padding: 0.45rem 0.9rem; cursor: pointer; font-size: 0.85rem; }
+      button.action:hover:not(:disabled) { background: var(--btn-hover); }
+      button.action:disabled { opacity: 0.4; cursor: not-allowed; }
+      button.primary { background: var(--accent); color: #0e1116; border-color: var(--accent); }
+      input, select { background: #0b0f14; color: var(--text); border: 1px solid var(--border); border-radius: 6px; padding: 0.4rem 0.6rem; font-size: 0.85rem; }
+      input[type=number] { width: 100px; }
+      input[type=text] { min-width: 260px; }
+      .pill { display: inline-block; padding: 0.15rem 0.55rem; border-radius: 999px; font-size: 0.75rem; font-weight: 600; }
+      .pill.ok { background: rgba(52,211,153,0.15); color: var(--ok); }
+      .pill.warn { background: rgba(251,191,36,0.15); color: var(--warn); }
+      .pill.err { background: rgba(248,113,113,0.15); color: var(--err); }
+      .pill.muted { background: #1f2937; color: var(--muted); }
+      table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+      th, td { text-align: left; padding: 0.45rem 0.5rem; border-bottom: 1px solid var(--border); }
+      th { color: var(--muted); font-weight: 500; }
+      .grid { display: grid; grid-template-columns: auto 1fr; gap: 0.35rem 1rem; font-size: 0.85rem; }
+      .grid > div:nth-child(odd) { color: var(--muted); }
+      .bar { width: 100%; background: #0b0f14; border: 1px solid var(--border); border-radius: 4px; height: 10px; overflow: hidden; }
+      .bar > div { height: 100%; background: linear-gradient(90deg, var(--ok), var(--warn), var(--err)); transition: width 0.1s; }
+      .hide { display: none; }
+      small.err { color: var(--err); }
+      small.ok { color: var(--ok); }
+      .back-link { color: var(--accent); text-decoration: none; font-size: 0.85rem; }
+      .back-link:hover { text-decoration: underline; }
+    </style>
+  </head>
+  <body>
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:1rem;margin-bottom:1rem">
+      <div>
+        <a href="/" class="back-link">&#8592; Voltar</a>
+      </div>
+    </div>
+
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:1rem">
+      <div>
+        <h1>Admin · <span id="bridgeName">...</span></h1>
+        <div class="sub">Console técnico para configuração e debug</div>
+      </div>
+      <label style="display:flex;align-items:center;gap:0.5rem;font-size:0.85rem;cursor:pointer;user-select:none" title="Desliga BLE/auto-connect e esconde abas Robot/BLE">
+        <input type="checkbox" id="testMode" onchange="toggleTestMode(this.checked)" />
+        <span>Modo teste (sem robô)</span>
+      </label>
+    </div>
+
+    <div class="tabs">
+      <button data-tab="status" class="active">Status</button>
+      <button data-tab="chat">Conversa</button>
+      <button data-tab="tv">TV</button>
+      <button data-tab="ble" class="tab-hardware">BLE</button>
+      <button data-tab="robot" class="tab-hardware">Robot</button>
+      <button data-tab="audio">Audio</button>
+    </div>
+
+    <section id="tab-status" class="tab">
+      <div class="panel">
+        <div class="row" style="justify-content: space-between">
+          <strong>Estado geral</strong>
+          <div class="row" style="margin: 0">
+            <button class="action" onclick="refreshStatus()">Atualizar</button>
+            <button class="action" style="color: var(--warn)" onclick="restartBridge()">Reiniciar</button>
+          </div>
+        </div>
+        <div class="grid" id="statusGrid"></div>
+      </div>
+
+      <div class="panel">
+        <div class="row" style="justify-content: space-between">
+          <strong>Auto-conectar BLE</strong>
+          <button class="action primary" id="btnAuto" onclick="toggleAuto()">...</button>
+        </div>
+        <div class="grid" id="autoGrid"></div>
+      </div>
+    </section>
+
+    <section id="tab-chat" class="tab hide">
+      <div class="panel">
+        <div class="row" style="justify-content: space-between">
+          <strong>OpenAI Realtime</strong>
+          <div class="row" style="margin: 0">
+            <span id="chatPhase">...</span>
+            <button class="action" id="btnChatStart" onclick="startChat()">Iniciar</button>
+            <button class="action" id="btnChatStop" onclick="stopChat()">Parar</button>
+          </div>
+        </div>
+        <div class="grid" id="chatGrid" style="margin-top: 0.5rem"></div>
+      </div>
+
+      <div class="panel">
+        <div class="row">
+          <label>Agente</label>
+          <select id="agentSelect" onchange="selectAgent(this.value)" style="min-width: 220px">
+            <option value="">— carregando —</option>
+          </select>
+          <small id="agentMsg" style="color: var(--muted)"></small>
+        </div>
+      </div>
+
+      <div class="panel">
+        <strong>Ultima fala (voce)</strong>
+        <div id="chatUser" style="margin-top: 0.5rem; color: var(--muted); font-style: italic">—</div>
+      </div>
+      <div class="panel">
+        <strong>Ultima resposta</strong>
+        <div id="chatBot" style="margin-top: 0.5rem">—</div>
+      </div>
+    </section>
+
+    <section id="tab-tv" class="tab hide">
+      <div class="panel">
+        <div class="row" style="justify-content: space-between">
+          <strong>TV</strong>
+          <button class="action" onclick="refreshTv()">Atualizar</button>
+        </div>
+        <div class="grid" id="tvStatusGrid" style="margin-top: 0.5rem"></div>
+      </div>
+
+      <div class="panel">
+        <strong>Acoes manuais</strong>
+        <div class="row" style="margin-top: 0.5rem">
+          <label>URL livre</label>
+          <input type="text" id="tvUrl" placeholder="https://... (YouTube, imagem, pagina)" />
+          <button class="action primary" onclick="tvShowUrl()">Mostrar</button>
+        </div>
+        <div class="row">
+          <button class="action" onclick="tvClear()">Limpar</button>
+        </div>
+        <small id="tvMsg"></small>
+      </div>
+
+      <div class="panel">
+        <strong>Biblioteca do agente atual</strong>
+        <div id="tvLibrary"></div>
+      </div>
+    </section>
+
+    <section id="tab-ble" class="tab hide">
+      <div class="panel">
+        <div class="row">
+          <strong>Scan BLE</strong>
+          <input type="number" id="scanDuration" value="5000" min="1000" max="20000" />
+          <span style="color: var(--muted); font-size: 0.8rem">ms</span>
+          <button class="action primary" id="btnScan" onclick="runScan()">Escanear</button>
+        </div>
+        <table id="scanTable">
+          <thead><tr><th>Nome</th><th>Endereco</th><th>RSSI</th><th></th></tr></thead>
+          <tbody><tr><td colspan="4" style="color: var(--muted)">Nenhum scan executado ainda.</td></tr></tbody>
+        </table>
+      </div>
+
+      <div class="panel">
+        <div class="row">
+          <label>Endereco</label>
+          <input type="text" id="connectAddr" placeholder="00:11:22:... ou UUID" />
+          <button class="action primary" onclick="doConnect()">Conectar</button>
+          <button class="action" onclick="doDisconnect()">Desconectar</button>
+        </div>
+        <small id="bleMsg"></small>
+      </div>
+    </section>
+
+    <section id="tab-robot" class="tab hide">
+      <div class="panel">
+        <strong>Movimento</strong>
+        <div class="row" style="margin-top: 0.5rem">
+          <label>Velocidade</label>
+          <select id="speedLevel">
+            <option value="0">0 (padrao)</option><option value="1">1</option>
+            <option value="2">2</option><option value="3">3 (rapido)</option>
+          </select>
+          <label>Cor LED</label>
+          <select id="ledColor">
+            <option value="1">Dark Blue</option><option value="2" selected>Blue</option>
+            <option value="3">Green</option><option value="4">Yellow</option>
+            <option value="5">Red</option><option value="6">Purple</option>
+            <option value="7">White</option>
+          </select>
+        </div>
+        <div class="row">
+          <button class="action" onclick="cmdMove('up')">up</button>
+          <button class="action" onclick="cmdMove('down')">down</button>
+          <button class="action" onclick="cmdMove('left')">left</button>
+          <button class="action" onclick="cmdMove('right')">right</button>
+          <button class="action primary" onclick="cmdStop()">stop</button>
+        </div>
+      </div>
+
+      <div class="panel">
+        <strong>Action code</strong>
+        <div class="sub" style="font-size:0.8rem;margin:0.25rem 0 0.5rem">Dance 1-93, arms 100-110, legs 200-235, stop=77.</div>
+        <div class="row">
+          <label>Code</label>
+          <input type="number" id="actionCode" value="50" min="1" max="235" />
+          <button class="action primary" onclick="cmdAction()">Executar</button>
+        </div>
+      </div>
+
+      <div class="panel">
+        <strong>So cor (sem mover)</strong>
+        <div class="row">
+          <button class="action" onclick="cmdColor(1)" style="color:#1e40af">Dark Blue</button>
+          <button class="action" onclick="cmdColor(2)" style="color:#3b82f6">Blue</button>
+          <button class="action" onclick="cmdColor(3)" style="color:#10b981">Green</button>
+          <button class="action" onclick="cmdColor(4)" style="color:#eab308">Yellow</button>
+          <button class="action" onclick="cmdColor(5)" style="color:#ef4444">Red</button>
+          <button class="action" onclick="cmdColor(6)" style="color:#a855f7">Purple</button>
+          <button class="action" onclick="cmdColor(7)">White</button>
+        </div>
+      </div>
+
+      <small id="robotMsg"></small>
+    </section>
+
+    <section id="tab-audio" class="tab hide">
+      <div class="panel">
+        <strong>Speaker — tom de teste</strong>
+        <div class="row" style="margin-top: 0.5rem">
+          <label>Frequencia</label>
+          <input type="number" id="toneHz" value="440" min="50" max="8000" />
+          <label>Duracao</label>
+          <input type="number" id="toneMs" value="800" min="100" max="5000" />
+          <button class="action primary" onclick="playTone()">Tocar</button>
+        </div>
+      </div>
+
+      <div class="panel">
+        <strong>Microfone — medir nivel</strong>
+        <div class="row" style="margin-top: 0.5rem">
+          <label>Duracao</label>
+          <input type="number" id="micMs" value="2000" min="500" max="10000" />
+          <button class="action primary" id="btnMic" onclick="recordMic()">Gravar</button>
+        </div>
+        <div id="micResult" class="hide">
+          <div class="row"><label>RMS</label><div class="bar" style="width:220px"><div id="barRms" style="width:0%"></div></div><span id="rmsVal">—</span></div>
+          <div class="row"><label>Peak</label><div class="bar" style="width:220px"><div id="barPeak" style="width:0%"></div></div><span id="peakVal">—</span></div>
+          <div class="row"><label>Bytes</label><span id="bytesVal">—</span></div>
+        </div>
+      </div>
+      <small id="audioMsg"></small>
+    </section>
+
+    <script>
+      const tabs = document.querySelectorAll('.tabs button');
+      tabs.forEach(t => t.addEventListener('click', () => {
+        tabs.forEach(x => x.classList.remove('active'));
+        t.classList.add('active');
+        document.querySelectorAll('.tab').forEach(s => s.classList.add('hide'));
+        document.getElementById('tab-' + t.dataset.tab).classList.remove('hide');
+      }));
+
+      async function api(path, opts = {}) {
+        const res = await fetch(path, {
+          method: opts.method || 'GET',
+          headers: opts.body ? { 'Content-Type': 'application/json' } : {},
+          body: opts.body ? JSON.stringify(opts.body) : undefined,
+        });
+        const text = await res.text();
+        let data; try { data = JSON.parse(text); } catch { data = { raw: text }; }
+        if (!res.ok) throw new Error(data?.error || `HTTP ${res.status}`);
+        return data;
+      }
+
+      function pill(state, label) {
+        return `<span class="pill ${state}">${label}</span>`;
+      }
+
+      function fmtTime(iso) {
+        if (!iso) return '—';
+        const d = new Date(iso);
+        const diff = Math.max(0, Math.floor((Date.now() - d.getTime()) / 1000));
+        if (diff < 60) return `${diff}s atras`;
+        if (diff < 3600) return `${Math.floor(diff/60)}min atras`;
+        return d.toLocaleTimeString();
+      }
+
+      async function refreshStatus() {
+        try {
+          const s = await api('/api/status');
+          document.getElementById('bridgeName').textContent = s.bridge.name;
+          const grid = document.getElementById('statusGrid');
+          const ac = s.autoConnect;
+          let autoLabel;
+          if (!ac.enabled) autoLabel = pill('muted', 'desligado');
+          else if (ac.running) autoLabel = pill('warn', 'escaneando...');
+          else autoLabel = pill('ok', 'ativo');
+          grid.innerHTML = `
+            <div>Bridge</div><div>${s.bridge.name} · v${s.bridge.version}</div>
+            <div>Token</div><div><code>${s.bridge.token}</code></div>
+            <div>WS cloud</div><div>${s.ws.connected ? pill('ok', 'conectado') : pill('err', 'offline')} <code style="color:var(--muted)">${s.ws.url}</code></div>
+            <div>BLE</div><div>${s.ble.connected ? pill('ok', 'conectado') : pill('muted', 'desconectado')}</div>
+            <div>Auto-connect</div><div>${autoLabel}</div>
+            <div>Realtime</div><div>${realtimePill(s.realtime)}</div>
+            <div>Audio</div><div>${s.audio.recording ? pill('warn', 'gravando') : pill('muted', 'ocioso')}</div>
+          `;
+
+          const autoGrid = document.getElementById('autoGrid');
+          autoGrid.innerHTML = `
+            <div>Ultimo scan</div><div>${fmtTime(ac.lastAttemptAt)}</div>
+            <div>Ultima conexao</div><div>${fmtTime(ac.lastConnectedAt)}</div>
+            <div>Ultimo erro</div><div>${ac.lastError ? `<small class="err">${ac.lastError}</small>` : '<span style="color:var(--muted)">—</span>'}</div>
+          `;
+          const btn = document.getElementById('btnAuto');
+          btn.textContent = ac.enabled ? 'Desligar auto' : 'Ligar auto';
+          btn.dataset.enabled = ac.enabled ? '1' : '0';
+
+          renderChat(s.realtime);
+        } catch (e) {
+          document.getElementById('statusGrid').innerHTML = `<div>Erro</div><div><small class="err">${e.message}</small></div>`;
+        }
+      }
+
+      function realtimePill(r) {
+        if (!r.enabled) return pill('muted', 'desligado');
+        const map = {
+          idle: ['muted', 'ocioso'],
+          connecting: ['warn', 'conectando...'],
+          listening: ['ok', 'ouvindo'],
+          thinking: ['warn', 'pensando...'],
+          speaking: ['ok', 'falando'],
+          error: ['err', 'erro'],
+        };
+        const [cls, label] = map[r.phase] ?? ['muted', r.phase];
+        return pill(cls, label);
+      }
+
+      function renderChat(r) {
+        document.getElementById('chatPhase').innerHTML = realtimePill(r);
+        const grid = document.getElementById('chatGrid');
+        grid.innerHTML = `
+          <div>Estado</div><div>${r.enabled ? 'ligado' : 'desligado'}</div>
+          <div>WS OpenAI</div><div>${r.connected ? pill('ok', 'conectado') : pill('muted', 'offline')}</div>
+          <div>Erro</div><div>${r.lastError ? `<small class="err">${r.lastError}</small>` : '<span style="color:var(--muted)">—</span>'}</div>
+        `;
+        document.getElementById('chatUser').textContent = r.lastUserText ?? '—';
+        document.getElementById('chatBot').textContent = r.lastAssistantText ?? '—';
+      }
+
+      async function refreshAgents() {
+        try {
+          const data = await api('/api/agents');
+          const sel = document.getElementById('agentSelect');
+          if (!data.agents.length) {
+            sel.innerHTML = '<option value="">— nenhum agente cadastrado —</option>';
+            return;
+          }
+          sel.innerHTML = data.agents
+            .map(a => `<option value="${a.id}" ${a.id === data.currentAgentId ? 'selected' : ''}>${a.name} · ${a.voice}</option>`)
+            .join('');
+        } catch (e) {
+          document.getElementById('agentMsg').textContent = 'Erro: ' + e.message;
+        }
+      }
+
+      async function selectAgent(agentId) {
+        if (!agentId) return;
+        const msg = document.getElementById('agentMsg');
+        msg.style.color = 'var(--muted)'; msg.textContent = 'Trocando...';
+        try {
+          await api('/api/realtime/agent', { method: 'POST', body: { agentId } });
+          msg.style.color = 'var(--ok)'; msg.textContent = 'Trocado.';
+          refreshStatus();
+          setTimeout(() => { msg.textContent = ''; }, 2000);
+        } catch (e) {
+          msg.style.color = 'var(--err)'; msg.textContent = 'Erro: ' + e.message;
+        }
+      }
+
+      async function startChat() {
+        try { const s = await api('/api/realtime/start', { method: 'POST' }); renderChat(s); refreshStatus(); }
+        catch (e) { alert('Falha: ' + e.message); }
+      }
+      async function stopChat() {
+        try { const s = await api('/api/realtime/stop', { method: 'POST' }); renderChat(s); refreshStatus(); }
+        catch (e) { alert('Falha: ' + e.message); }
+      }
+
+      async function restartBridge() {
+        if (!confirm('Reiniciar o bridge?')) return;
+        try {
+          await api('/api/admin/restart', { method: 'POST' });
+        } catch (e) {}
+        document.body.style.opacity = '0.4';
+        document.body.style.pointerEvents = 'none';
+        const start = Date.now();
+        const waitUp = async () => {
+          if (Date.now() - start > 30000) {
+            alert('Bridge nao voltou em 30s.');
+            location.reload();
+            return;
+          }
+          try {
+            const res = await fetch('/api/status', { cache: 'no-store' });
+            if (res.ok) { location.reload(); return; }
+          } catch {}
+          setTimeout(waitUp, 500);
+        };
+        setTimeout(waitUp, 1500);
+      }
+
+      async function toggleAuto() {
+        const btn = document.getElementById('btnAuto');
+        const next = btn.dataset.enabled !== '1';
+        btn.disabled = true;
+        try {
+          await api('/api/ble/auto', { method: 'POST', body: { enabled: next } });
+          await refreshStatus();
+        } catch (e) {
+          alert('Falha: ' + e.message);
+        } finally {
+          btn.disabled = false;
+        }
+      }
+
+      async function runScan() {
+        const btn = document.getElementById('btnScan');
+        btn.disabled = true; btn.textContent = 'Escaneando...';
+        try {
+          const duration = parseInt(document.getElementById('scanDuration').value, 10);
+          const { devices } = await api('/api/ble/scan', { method: 'POST', body: { durationMs: duration } });
+          const tbody = document.querySelector('#scanTable tbody');
+          if (!devices.length) {
+            tbody.innerHTML = '<tr><td colspan="4" style="color:var(--muted)">Nenhum encontrado.</td></tr>';
+          } else {
+            tbody.innerHTML = devices.map(d => `
+              <tr>
+                <td>${d.name ?? '<i style="color:var(--muted)">—</i>'}</td>
+                <td><code>${d.address}</code></td>
+                <td>${d.rssi}</td>
+                <td><button class="action" onclick="pickAddr('${d.address}')">Usar</button></td>
+              </tr>
+            `).join('');
+          }
+        } catch (e) {
+          alert('Scan falhou: ' + e.message);
+        } finally {
+          btn.disabled = false; btn.textContent = 'Escanear';
+        }
+      }
+
+      function pickAddr(a) { document.getElementById('connectAddr').value = a; }
+
+      async function doConnect() {
+        const addr = document.getElementById('connectAddr').value.trim();
+        if (!addr) return;
+        const msg = document.getElementById('bleMsg');
+        msg.className = ''; msg.textContent = 'Conectando...';
+        try {
+          await api('/api/ble/connect', { method: 'POST', body: { address: addr } });
+          msg.className = 'ok'; msg.textContent = 'Conectado.';
+          refreshStatus();
+        } catch (e) {
+          msg.className = 'err'; msg.textContent = 'Erro: ' + e.message;
+        }
+      }
+
+      async function doDisconnect() {
+        const msg = document.getElementById('bleMsg');
+        msg.className = ''; msg.textContent = 'Desconectando...';
+        try {
+          await api('/api/ble/disconnect', { method: 'POST' });
+          msg.className = 'ok'; msg.textContent = 'Desconectado.';
+          refreshStatus();
+        } catch (e) {
+          msg.className = 'err'; msg.textContent = 'Erro: ' + e.message;
+        }
+      }
+
+      function robotOpts() {
+        return {
+          speedLevel: parseInt(document.getElementById('speedLevel').value, 10),
+          color: parseInt(document.getElementById('ledColor').value, 10),
+        };
+      }
+      async function sendCmd(body) {
+        const msg = document.getElementById('robotMsg');
+        msg.className = ''; msg.textContent = 'Enviando...';
+        try {
+          const r = await api('/api/robot/command', { method: 'POST', body });
+          msg.className = 'ok'; msg.textContent = `OK (${r.bytes} bytes)`;
+        } catch (e) {
+          msg.className = 'err'; msg.textContent = 'Erro: ' + e.message;
+        }
+      }
+      function cmdMove(direction) { sendCmd({ type: 'move', direction, ...robotOpts() }); }
+      function cmdAction() {
+        const action = parseInt(document.getElementById('actionCode').value, 10);
+        sendCmd({ type: 'action', action, ...robotOpts() });
+      }
+      function cmdStop() { sendCmd({ type: 'stop' }); }
+      function cmdColor(c) { sendCmd({ type: 'color', color: c }); }
+
+      async function playTone() {
+        const frequencyHz = parseInt(document.getElementById('toneHz').value, 10);
+        const durationMs = parseInt(document.getElementById('toneMs').value, 10);
+        const msg = document.getElementById('audioMsg');
+        msg.className = ''; msg.textContent = 'Tocando...';
+        try {
+          await api('/api/audio/tone', { method: 'POST', body: { frequencyHz, durationMs } });
+          msg.className = 'ok'; msg.textContent = 'Tom enviado.';
+        } catch (e) {
+          msg.className = 'err'; msg.textContent = 'Erro: ' + e.message;
+        }
+      }
+
+      async function recordMic() {
+        const durationMs = parseInt(document.getElementById('micMs').value, 10);
+        const btn = document.getElementById('btnMic');
+        const msg = document.getElementById('audioMsg');
+        btn.disabled = true; btn.textContent = 'Gravando...';
+        msg.className = ''; msg.textContent = '';
+        try {
+          const r = await api('/api/audio/mic', { method: 'POST', body: { durationMs } });
+          document.getElementById('micResult').classList.remove('hide');
+          document.getElementById('barRms').style.width = (r.rms * 100).toFixed(1) + '%';
+          document.getElementById('barPeak').style.width = (r.peak * 100).toFixed(1) + '%';
+          document.getElementById('rmsVal').textContent = r.rms.toFixed(4);
+          document.getElementById('peakVal').textContent = r.peak.toFixed(4);
+          document.getElementById('bytesVal').textContent = r.bytes.toLocaleString();
+        } catch (e) {
+          msg.className = 'err'; msg.textContent = 'Erro: ' + e.message;
+        } finally {
+          btn.disabled = false; btn.textContent = 'Gravar';
+        }
+      }
+
+      function applyTestMode(on) {
+        document.querySelectorAll('.tab-hardware').forEach(el => el.style.display = on ? 'none' : '');
+        const active = document.querySelector('.tabs button.active');
+        if (on && active && active.classList.contains('tab-hardware')) {
+          document.querySelector('.tabs button[data-tab="chat"]').click();
+        }
+      }
+      async function toggleTestMode(on) {
+        localStorage.setItem('testMode', on ? '1' : '0');
+        applyTestMode(on);
+        try {
+          await api('/api/ble/auto', { method: 'POST', body: { enabled: !on } });
+          if (on) await api('/api/ble/disconnect', { method: 'POST' });
+        } catch (e) {}
+        refreshStatus();
+      }
+      (function initTestMode() {
+        const saved = localStorage.getItem('testMode') === '1';
+        document.getElementById('testMode').checked = saved;
+        applyTestMode(saved);
+      })();
+
+      async function refreshTv() {
+        try {
+          const s = await api('/api/tv');
+          const grid = document.getElementById('tvStatusGrid');
+          const current = s.current ? `${s.current.kind}${s.current.title ? ' · ' + s.current.title : ''}` : '—';
+          grid.innerHTML = `
+            <div>URL para TV</div><div>${s.displayUrl ? `<a href="${s.displayUrl}" target="_blank" style="color:var(--accent)">${s.displayUrl}</a>` : '<span style="color:var(--muted)">bridgeId pendente</span>'}</div>
+            <div>Bridge ID</div><div><code style="color:var(--muted)">${s.bridgeId || '—'}</code></div>
+            <div>Exibindo</div><div>${current}</div>
+            <div>Ultimo topico</div><div>${s.lastTopic || '<span style="color:var(--muted)">—</span>'}</div>
+            <div>Atualizado</div><div>${s.lastUpdatedAt ? fmtTime(s.lastUpdatedAt) : '<span style="color:var(--muted)">—</span>'}</div>
+          `;
+          const lib = document.getElementById('tvLibrary');
+          if (!s.library || s.library.length === 0) {
+            lib.innerHTML = '<span style="color:var(--muted)">Biblioteca vazia.</span>';
+          } else {
+            lib.innerHTML = s.library.map(item => `
+              <div class="row" style="border-bottom: 1px solid var(--border); padding: 0.5rem 0; margin: 0">
+                <div style="flex: 1">
+                  <div><strong>${item.topic}</strong> <span style="color:var(--muted);font-size:0.75rem">· ${item.kind}</span></div>
+                  <div style="font-size:0.75rem;color:var(--muted)">${item.title || item.url || item.text || ''}</div>
+                </div>
+                <button class="action" onclick="tvShowTopic('${item.topic.replace(/'/g, "\\'")}')">Mostrar</button>
+              </div>
+            `).join('');
+          }
+        } catch (e) {
+          document.getElementById('tvStatusGrid').innerHTML = `<div>Erro</div><div><small class="err">${e.message}</small></div>`;
+        }
+      }
+
+      async function tvShowTopic(topic) {
+        const msg = document.getElementById('tvMsg');
+        msg.className = ''; msg.textContent = 'Enviando...';
+        try {
+          await api('/api/tv/show-topic', { method: 'POST', body: { topic } });
+          msg.className = 'ok'; msg.textContent = 'OK';
+          refreshTv();
+        } catch (e) { msg.className = 'err'; msg.textContent = 'Erro: ' + e.message; }
+      }
+      async function tvShowUrl() {
+        const url = document.getElementById('tvUrl').value.trim();
+        if (!url) return;
+        const msg = document.getElementById('tvMsg');
+        msg.className = ''; msg.textContent = 'Enviando...';
+        try {
+          await api('/api/tv/show-url', { method: 'POST', body: { url } });
+          msg.className = 'ok'; msg.textContent = 'OK';
+          refreshTv();
+        } catch (e) { msg.className = 'err'; msg.textContent = 'Erro: ' + e.message; }
+      }
+      async function tvClear() {
+        const msg = document.getElementById('tvMsg');
+        try {
+          await api('/api/tv/clear', { method: 'POST' });
+          msg.className = 'ok'; msg.textContent = 'TV limpa';
+          refreshTv();
+        } catch (e) { msg.className = 'err'; msg.textContent = 'Erro: ' + e.message; }
+      }
+
+      refreshStatus();
+      refreshAgents();
+      refreshTv();
+      setInterval(refreshStatus, 4000);
+      setInterval(refreshAgents, 10000);
+      setInterval(refreshTv, 6000);
+    </script>
+  </body>
+</html>

@@ -9,12 +9,17 @@ import { agentRoutes } from "./routes/agents.js";
 import { bridgeRoutes } from "./routes/bridges.js";
 import { bridgeTvRoutes } from "./routes/bridge-tv.js";
 import { sessionRoutes } from "./routes/sessions.js";
+import { personRoutes } from "./routes/persons.js";
+import { visitRoutes } from "./routes/visits.js";
+import { conversationRoutes } from "./routes/conversations.js";
+import { realtimeRoutes } from "./routes/realtime.js";
 import { SessionHub } from "./services/session-hub.js";
 import { TvHub } from "./services/tv-hub.js";
 import { registerBridgeWs } from "./ws/bridge.js";
 import { registerBridgeTvWs } from "./ws/bridge-tv.js";
 import { registerAdminWs } from "./ws/admin.js";
 import { registerTvWs } from "./ws/tv.js";
+import { registerRealtimeTvWs } from "./ws/realtime-tv.js";
 
 export async function buildServer() {
   const cfg = loadConfig();
@@ -48,6 +53,10 @@ export async function buildServer() {
       await instance.register(bridgeRoutes(hub));
       await instance.register(sessionRoutes(hub));
       await instance.register(bridgeTvRoutes(tvHub));
+      await instance.register(personRoutes);
+      await instance.register(visitRoutes);
+      await instance.register(conversationRoutes);
+      await instance.register(realtimeRoutes(tvHub));
     },
     { prefix: "/api" },
   );
@@ -56,7 +65,8 @@ export async function buildServer() {
   registerBridgeWs(app, hub);
   registerAdminWs(app, hub);
   registerTvWs(app, hub);
-  registerBridgeTvWs(app, tvHub);
+  registerBridgeTvWs(app, tvHub, hub);
+  registerRealtimeTvWs(app, tvHub);
 
   app.get("/healthz", async () => ({ ok: true }));
 

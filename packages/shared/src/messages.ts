@@ -8,13 +8,24 @@ export type TvContent =
   | { kind: "webpage"; url: string }
   | { kind: "text"; text: string };
 
+// TV -> API (face detection events from browser)
+export type TvUpMsg =
+  | { type: "face:detected"; descriptor: number[] }
+  | { type: "face:idle" }
+  | { type: "face:lost" };
+
 export type TvDownMsg =
   | { type: "display"; content: TvContent }
   | { type: "clear" }
   | { type: "hello"; sessionId: string }
   /** Pushes the idle-state background configuration (shown when no active
    *  `display` content). `backgroundUrl` is null → use the built-in scene. */
-  | { type: "idle-config"; backgroundUrl: string | null };
+  | { type: "idle-config"; backgroundUrl: string | null }
+  // Face recognition events (API -> TV)
+  | { type: "face:identified"; personId: string; name: string }
+  | { type: "face:unknown"; tempId: string }
+  | { type: "face:registered"; personId: string; name: string }
+  | { type: "face:config"; enabled: boolean; threshold?: number };
 
 // ---------- Session events (broadcast to admin & tv subscribers) ----------
 export type SessionEvent =
@@ -97,7 +108,9 @@ export type BridgeDownMsg =
   | { type: "audio:out"; pcm: string }
   | { type: "session:start"; sessionId: string; realtime: RealtimeConfig }
   | { type: "session:end" }
-  | { type: "ping" };
+  | { type: "ping" }
+  // Face recognition greeting trigger
+  | { type: "greeting:trigger"; personName: string | null; personId: string | null };
 
 // ---------- Admin ↔ API ----------
 export type AdminUpMsg =

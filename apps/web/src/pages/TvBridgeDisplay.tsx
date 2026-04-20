@@ -1,37 +1,187 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import { useParams } from "react-router-dom";
-import type { TvContent, TvDownMsg } from "@robot/shared";
-import { openJsonWs, wsUrl } from "@/lib/ws";
+import type { TvContent, TvDownMsg, TvUpMsg } from "@robot/shared";
+import { openJsonWs, wsUrl, type JsonWebSocketHandle } from "@/lib/ws";
 import TvContentView from "@/components/TvContent";
+import { useFaceDetection } from "@/hooks/useFaceDetection";
+
+interface IdentifiedPerson {
+  personId: string;
+  name: string;
+}
 
 /**
  * Bridge-scoped TV display. The URL is stable per bridge (admin creates the
  * bridge → gets its id → opens `/tv/bridge/<bridgeId>` on any screen). The
  * bridge drives content directly via its OpenAI tool calls; no session
  * required.
+ *
+ * Now also includes face detection via camera for personalized greetings.
  */
 export default function TvBridgeDisplay() {
   const { bridgeId } = useParams<{ bridgeId: string }>();
   const [content, setContent] = useState<TvContent | null>(null);
   const [idleBackground, setIdleBackground] = useState<string | null>(null);
 
+  // Face detection state
+  const [faceEnabled, setFaceEnabled] = useState(true);
+  const [identifiedPerson, setIdentifiedPerson] = useState<IdentifiedPerson | null>(null);
+  const [cameraError, setCameraError] = useState<string | null>(null);
+
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const wsRef = useRef<JsonWebSocketHandle | null>(null);
+  const streamRef = useRef<MediaStream | null>(null);
+
+  // Initialize camera
+  useEffect(() => {
+    if (!faceEnabled) return;
+
+    navigator.mediaDevices
+      .getUserMedia({
+        video: {
+          facingMode: "user",
+          width: { ideal: 640 },
+          height: { ideal: 480 },
+        },
+      })
+      .then((stream) => {
+        streamRef.current = stream;
+        if (videoRef.current) {
+          videoRef.current.srcObject = stream;
+        }
+        setCameraError(null);
+      })
+      .catch((err) => {
+        console.error("Camera error:", err);
+        setCameraError(`Camera access denied: ${err.message}`);
+      });
+
+    return () => {
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach((track) => track.stop());
+        streamRef.current = null;
+      }
+    };
+  }, [faceEnabled]);
+
+  // Send face detection event to server
+  const sendFaceEvent = useCallback((msg: TvUpMsg) => {
+    wsRef.current?.send(msg);
+  }, []);
+
+  // Face detection callbacks
+  const handleFaceDetected = useCallback(
+    (descriptor: number[]) => {
+      sendFaceEvent({ type: "face:detected", descriptor });
+    },
+    [sendFaceEvent],
+  );
+
+  const handleFaceIdle = useCallback(() => {
+    sendFaceEvent({ type: "face:idle" });
+  }, [sendFaceEvent]);
+
+  const handleFaceLost = useCallback(() => {
+    sendFaceEvent({ type: "face:lost" });
+    setIdentifiedPerson(null);
+  }, [sendFaceEvent]);
+
+  // Face detection hook
+  const { isReady: faceReady, hasDetection, error: faceError } = useFaceDetection(
+    videoRef,
+    {
+      enabled: faceEnabled && !cameraError,
+      detectionIntervalMs: 500,
+      idleTimeoutMs: 3000,
+      minConfidence: 0.5,
+    },
+    handleFaceDetected,
+    handleFaceIdle,
+    handleFaceLost,
+  );
+
+  // WebSocket connection
   useEffect(() => {
     if (!bridgeId) return;
     const handle = openJsonWs(wsUrl(`/ws/tv/bridge/${bridgeId}`), {
       reconnect: true,
       onMessage: (data) => {
         const msg = data as TvDownMsg;
-        if (msg.type === "display") setContent(msg.content);
-        else if (msg.type === "clear") setContent(null);
-        else if (msg.type === "idle-config") setIdleBackground(msg.backgroundUrl);
-        // "hello" is just the handshake; ignore.
+        switch (msg.type) {
+          case "display":
+            setContent(msg.content);
+            break;
+          case "clear":
+            setContent(null);
+            break;
+          case "idle-config":
+            setIdleBackground(msg.backgroundUrl);
+            break;
+          case "face:identified":
+            setIdentifiedPerson({ personId: msg.personId, name: msg.name });
+            break;
+          case "face:unknown":
+            setIdentifiedPerson(null);
+            break;
+          case "face:registered":
+            setIdentifiedPerson({ personId: msg.personId, name: msg.name });
+            break;
+          case "face:config":
+            setFaceEnabled(msg.enabled);
+            break;
+          // "hello" is just the handshake; ignore.
+        }
       },
     });
-    return () => handle.close();
+    wsRef.current = handle;
+    return () => {
+      handle.close();
+      wsRef.current = null;
+    };
   }, [bridgeId]);
 
   return (
-    <div className="w-screen h-screen bg-black overflow-hidden">
+    <div className="w-screen h-screen bg-black overflow-hidden relative">
+      {/* Hidden video for face detection camera */}
+      {faceEnabled && (
+        <video
+          ref={videoRef}
+          autoPlay
+          muted
+          playsInline
+          className="absolute opacity-0 pointer-events-none"
+          style={{ width: 1, height: 1, top: 0, left: 0 }}
+        />
+      )}
+
+      {/* Face detection status indicator (small, bottom-right corner) */}
+      {faceEnabled && (
+        <div className="absolute bottom-4 right-4 z-50 flex items-center gap-2">
+          {!faceReady && (
+            <span className="text-xs text-gray-500">Loading face detection...</span>
+          )}
+          {faceError && (
+            <span className="text-xs text-red-500">{faceError}</span>
+          )}
+          {cameraError && (
+            <span className="text-xs text-red-500">{cameraError}</span>
+          )}
+          {faceReady && !cameraError && (
+            <div
+              className={`w-3 h-3 rounded-full transition-colors ${
+                hasDetection ? "bg-green-500" : "bg-gray-600"
+              }`}
+              title={hasDetection ? "Face detected" : "No face detected"}
+            />
+          )}
+          {identifiedPerson && (
+            <span className="text-xs text-green-400">
+              {identifiedPerson.name}
+            </span>
+          )}
+        </div>
+      )}
+
       {content ? (
         // `key` forces remount when content changes → animation replays.
         <div key={JSON.stringify(content)} className="w-full h-full tv-in">

@@ -37,7 +37,7 @@ export default function SessionsList() {
         title="Sessões"
         subtitle="Histórico e sessões ao vivo."
         actions={
-          <Link to="/connect" className="btn-primary">
+          <Link to="/admin/connect" className="btn-primary">
             Nova sessão
           </Link>
         }
@@ -84,7 +84,7 @@ export default function SessionsList() {
             title="Nenhuma sessão registrada"
             description="Inicie uma sessão conectando o robô via uma bridge para vê-la aqui."
             action={
-              <Link to="/connect" className="btn-primary">
+              <Link to="/admin/connect" className="btn-primary">
                 Iniciar sessão
               </Link>
             }
@@ -107,7 +107,7 @@ export default function SessionsList() {
                   <tr key={s.id}>
                     <td>
                       <Link
-                        to={`/sessions/${s.id}`}
+                        to={`/admin/sessions/${s.id}`}
                         className="text-fg hover:text-accent"
                       >
                         {agentById.get(s.agentId)?.name ?? s.agentId}

@@ -27,6 +27,10 @@ export interface RealtimeStatus {
   lastUserText: string | null;
   lastAssistantText: string | null;
   currentAgentId: string | null;
+  sessionTimeoutMs: number;
+  micGain: number;
+  speakerVolume: number;
+  micCooldownMs: number;
   updatedAt: string;
 }
 
@@ -105,6 +109,15 @@ export class RealtimeClient extends EventEmitter {
    *  tail of response A followed by the start of response B (perceived as
    *  "the voice changing mid-sentence"). */
   private lastResponseId: string | null = null;
+  /** Cooldown period after AI stops speaking before accepting mic input.
+   *  Prevents residual speaker echo from being captured as user speech. */
+  private micCooldownUntil = 0;
+  private micCooldownMs = 1500;
+  /** Speaker volume (0.0 to 1.0). */
+  private speakerVolume = 1.0;
+  /** Session inactivity timeout — resets conversation after X ms of no user speech. */
+  private sessionTimeoutMs = 30_000;
+  private sessionTimer: NodeJS.Timeout | null = null;
 
   constructor(private readonly audio: Audio) {
     super();
@@ -115,6 +128,9 @@ export class RealtimeClient extends EventEmitter {
   }
 
   private onPlaybackIdle(): void {
+    // Browser reports its audio queue drained — extend cooldown to catch
+    // any trailing echo from the speaker.
+    this.micCooldownUntil = Date.now() + this.micCooldownMs;
     // Only act if we're back in listening (AI truly finished), and there's
     // no new response already in flight.
     if (this.phase !== "listening") return;
@@ -142,6 +158,88 @@ export class RealtimeClient extends EventEmitter {
   /** Linear gain applied to mic PCM before upload. 1.0 = no change. */
   setMicGain(factor: number): void {
     this.micGain = Math.max(0.1, factor);
+  }
+
+  getMicGain(): number {
+    return this.micGain;
+  }
+
+  /** Set speaker volume (0.0 to 1.0). */
+  setSpeakerVolume(vol: number): void {
+    this.speakerVolume = Math.max(0, Math.min(1, vol));
+    logger.info(`[realtime] speaker volume set to ${this.speakerVolume}`);
+  }
+
+  getSpeakerVolume(): number {
+    return this.speakerVolume;
+  }
+
+  /** Set mic cooldown period in ms. */
+  setMicCooldown(ms: number): void {
+    this.micCooldownMs = Math.max(0, ms);
+    logger.info(`[realtime] mic cooldown set to ${this.micCooldownMs}ms`);
+  }
+
+  getMicCooldown(): number {
+    return this.micCooldownMs;
+  }
+
+  /** Set session inactivity timeout in ms. 0 disables timeout. */
+  setSessionTimeout(ms: number): void {
+    this.sessionTimeoutMs = Math.max(0, ms);
+    logger.info(`[realtime] session timeout set to ${ms}ms`);
+  }
+
+  getSessionTimeout(): number {
+    return this.sessionTimeoutMs;
+  }
+
+  /** Reset session timer — called on user activity. */
+  private resetSessionTimer(): void {
+    if (this.sessionTimer) {
+      clearTimeout(this.sessionTimer);
+      this.sessionTimer = null;
+    }
+    if (this.sessionTimeoutMs <= 0) return;
+    this.sessionTimer = setTimeout(() => {
+      this.sessionTimer = null;
+      this.onSessionTimeout();
+    }, this.sessionTimeoutMs);
+  }
+
+  /** Called when session times out — clears conversation history by reconnecting. */
+  private onSessionTimeout(): void {
+    if (!this.enabled) return;
+    logger.info("[realtime] session timeout — resetting conversation (reconnecting)");
+    this.lastUserText = null;
+    this.lastAssistantText = null;
+    this.assistantBuffer = "";
+    // Clear the TV
+    if (this.tvController) {
+      void this.tvController.clear();
+    }
+    // Reconnect to OpenAI to get a fresh session (no conversation history)
+    if (this.ws) {
+      try {
+        this.ws.close(1000, "session-reset");
+      } catch {
+        /* ignore */
+      }
+      this.ws = null;
+    }
+    // Reconnect after a short delay
+    setTimeout(() => {
+      if (this.enabled) {
+        this.connect();
+      }
+    }, 500);
+    this.emit("sessionReset");
+  }
+
+  /** Manually reset the session (clear conversation history). */
+  resetSession(): void {
+    this.onSessionTimeout();
+    this.resetSessionTimer();
   }
 
   /**
@@ -215,6 +313,10 @@ export class RealtimeClient extends EventEmitter {
       lastUserText: this.lastUserText,
       lastAssistantText: this.lastAssistantText,
       currentAgentId: this.currentAgentId,
+      sessionTimeoutMs: this.sessionTimeoutMs,
+      micGain: this.micGain,
+      speakerVolume: this.speakerVolume,
+      micCooldownMs: this.micCooldownMs,
       updatedAt: new Date().toISOString(),
     };
   }
@@ -237,6 +339,10 @@ export class RealtimeClient extends EventEmitter {
       clearTimeout(this.reconnectTimer);
       this.reconnectTimer = null;
     }
+    if (this.sessionTimer) {
+      clearTimeout(this.sessionTimer);
+      this.sessionTimer = null;
+    }
     this.setPhase("idle");
     if (this.ws) {
       try {
@@ -250,6 +356,44 @@ export class RealtimeClient extends EventEmitter {
     if (this.audio.isRecording()) {
       this.audio.stopRecording();
     }
+  }
+
+  /**
+   * Inject a system-level instruction into the conversation context.
+   * Used for triggering greetings when a face is detected.
+   */
+  injectSystemMessage(text: string): void {
+    if (this.ws?.readyState !== WebSocket.OPEN) {
+      logger.warn("[realtime] injectSystemMessage ignored — not connected");
+      return;
+    }
+    logger.info(`[realtime] injecting system message: ${text.slice(0, 80)}...`);
+    this.sendJson({
+      type: "conversation.item.create",
+      item: {
+        type: "message",
+        role: "user",
+        content: [{ type: "input_text", text: `[SISTEMA]: ${text}` }],
+      },
+    });
+  }
+
+  /**
+   * Trigger an AI response without waiting for user audio input.
+   * Used after injecting a system message to prompt the greeting.
+   */
+  triggerResponse(): void {
+    if (this.ws?.readyState !== WebSocket.OPEN) {
+      logger.warn("[realtime] triggerResponse ignored — not connected");
+      return;
+    }
+    logger.info("[realtime] triggering response");
+    this.sendJson({
+      type: "response.create",
+      response: {
+        modalities: ["text", "audio"],
+      },
+    });
   }
 
   private setPhase(p: RealtimePhase): void {
@@ -356,10 +500,14 @@ export class RealtimeClient extends EventEmitter {
    *  Half-duplex fallback: drop chunks while the AI is speaking — even with
    *  browser AEC, loud speaker output can leak. Drops also prevent OpenAI
    *  from interpreting our own echo as user speech and cancelling the
-   *  response mid-sentence. */
+   *  response mid-sentence.
+   *  Also enforces a cooldown period after the AI stops speaking to let
+   *  residual echo from the speaker die down before accepting input. */
   ingestMicChunk(pcm: Buffer): void {
     if (this.ws?.readyState !== WebSocket.OPEN) return;
     if (this.phase !== "listening") return;
+    // Cooldown: ignore mic input right after AI stopped speaking
+    if (Date.now() < this.micCooldownUntil) return;
     this.sendJson({
       type: "input_audio_buffer.append",
       audio: pcm.toString("base64"),
@@ -397,6 +545,23 @@ export class RealtimeClient extends EventEmitter {
       if (url) { action = () => tv.showImage(url, caption); isTv = true; }
     } else if (name === "clear_tv") {
       action = () => tv.clear(); isTv = true;
+    } else if (name === "register_person") {
+      const personName = typeof args.name === "string" ? args.name.trim() : "";
+      if (personName) {
+        action = async () => {
+          try {
+            const result = await tv.registerPerson(personName);
+            if (result.ok) {
+              logger.info(`[realtime] registered person: ${personName} (id=${result.personId})`);
+              return { ok: true };
+            } else {
+              return { ok: false, reason: result.error ?? "Registration failed" };
+            }
+          } catch (err) {
+            return { ok: false, reason: (err as Error).message };
+          }
+        };
+      }
     }
 
     let resultPayload: { ok: boolean; reason?: string };
@@ -462,6 +627,7 @@ export class RealtimeClient extends EventEmitter {
 
       case "input_audio_buffer.speech_started":
         this.setPhase("listening");
+        this.resetSessionTimer();
         return;
 
       case "input_audio_buffer.speech_stopped":
@@ -510,6 +676,8 @@ export class RealtimeClient extends EventEmitter {
       case "response.cancelled":
         logger.info("[realtime] response cancelled by server");
         this.audio.resetPlayback();
+        // Set cooldown even on cancel to let residual audio fade
+        this.micCooldownUntil = Date.now() + this.micCooldownMs;
         return;
 
       // --- Tool calling (function calls) ---------------------------------
@@ -552,6 +720,8 @@ export class RealtimeClient extends EventEmitter {
       case "response.audio.done":
         this.audio.endPlayback();
         this.sendJson({ type: "input_audio_buffer.clear" });
+        // Set cooldown to ignore mic input while speaker echo fades
+        this.micCooldownUntil = Date.now() + this.micCooldownMs;
         setTimeout(() => {
           if (this.phase !== "listening") this.setPhase("listening");
         }, 400);
@@ -580,6 +750,8 @@ export class RealtimeClient extends EventEmitter {
         }
         this.assistantBuffer = "";
         this.flushPendingVisuals();
+        // Start/reset session timeout after AI finishes
+        this.resetSessionTimer();
         return;
       }
 
