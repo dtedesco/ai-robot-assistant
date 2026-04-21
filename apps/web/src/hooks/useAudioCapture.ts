@@ -93,10 +93,23 @@ export function useAudioCapture(
         audioConstraints.deviceId = { exact: deviceId };
       }
 
-      // Get microphone access
-      const stream = await navigator.mediaDevices.getUserMedia({
-        audio: audioConstraints,
-      });
+      // Get microphone access (with fallback if device not found)
+      let stream: MediaStream;
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({
+          audio: audioConstraints,
+        });
+      } catch (err) {
+        if (deviceId) {
+          console.warn("[audio] Device not found, trying without deviceId constraint");
+          delete audioConstraints.deviceId;
+          stream = await navigator.mediaDevices.getUserMedia({
+            audio: audioConstraints,
+          });
+        } else {
+          throw err;
+        }
+      }
 
       streamRef.current = stream;
       setHasPermission(true);

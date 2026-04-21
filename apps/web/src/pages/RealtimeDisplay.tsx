@@ -307,6 +307,21 @@ export default function RealtimeDisplay() {
       })
       .catch((err) => {
         console.error("Camera error:", err);
+        // Fallback: try without specific device constraint
+        if (settings.selectedCamera) {
+          console.log("Retrying camera without device constraint...");
+          navigator.mediaDevices
+            .getUserMedia({ video: { facingMode: "user" } })
+            .then((stream) => {
+              cameraStreamRef.current = stream;
+              if (videoRef.current) {
+                videoRef.current.srcObject = stream;
+              }
+            })
+            .catch((err2) => {
+              console.error("Camera fallback error:", err2);
+            });
+        }
       });
 
     return () => {
