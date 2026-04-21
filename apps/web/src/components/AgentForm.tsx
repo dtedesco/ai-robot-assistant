@@ -109,6 +109,7 @@ const formSchema = z.object({
   }),
   tvLibrary: z.array(tvLibrarySchema),
   tvIdleBackgroundUrl: z.string().optional(),
+  exitDelaySeconds: z.number().int().min(1).max(60),
 });
 
 type FormValues = z.infer<typeof formSchema>;
@@ -134,6 +135,7 @@ function toDefaults(initial?: AgentDTO): FormValues {
       tools: { ...DEFAULT_AGENT_TOOLS },
       tvLibrary: [],
       tvIdleBackgroundUrl: "",
+      exitDelaySeconds: 3,
     };
   }
   return {
@@ -147,6 +149,7 @@ function toDefaults(initial?: AgentDTO): FormValues {
     tools: { ...initial.tools },
     tvLibrary: initial.tvLibrary.map((i) => ({ ...i })),
     tvIdleBackgroundUrl: initial.tvIdleBackgroundUrl ?? "",
+    exitDelaySeconds: initial.exitDelaySeconds ?? 3,
   };
 }
 
@@ -190,6 +193,7 @@ export default function AgentForm({
       tvIdleBackgroundUrl: values.tvIdleBackgroundUrl?.trim()
         ? values.tvIdleBackgroundUrl.trim()
         : null,
+      exitDelaySeconds: values.exitDelaySeconds,
     };
     return onSubmit(payload);
   };
@@ -457,6 +461,29 @@ export default function AgentForm({
 
       {showAdvanced && (
         <>
+          {/* Timing Settings */}
+          <section className="card p-6 space-y-4">
+            <div>
+              <h2 className="text-lg font-semibold">Temporização</h2>
+              <p className="text-sm text-fg-muted mt-1">
+                Configurações de tempo para interações
+              </p>
+            </div>
+            <div>
+              <label className="label">Tempo de Saída (segundos)</label>
+              <input
+                type="number"
+                min={1}
+                max={60}
+                className="input w-32"
+                {...register("exitDelaySeconds", { valueAsNumber: true })}
+              />
+              <p className="mt-1 text-xs text-fg-muted">
+                Segundos para esperar após o rosto desaparecer antes de dar tchau
+              </p>
+            </div>
+          </section>
+
           {/* TV Background */}
           <section className="card p-6 space-y-4">
             <div>

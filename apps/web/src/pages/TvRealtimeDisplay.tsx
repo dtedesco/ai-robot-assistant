@@ -12,7 +12,8 @@ import { openJsonWs, wsUrl } from "@/lib/ws";
 import TvContentView from "@/components/TvContent";
 
 export default function TvRealtimeDisplay() {
-  const { agentId } = useParams<{ agentId: string }>();
+  const params = useParams<{ agentId?: string; slug?: string }>();
+  const agentId = params.agentId || params.slug;
   const [content, setContent] = useState<TvContent | null>(null);
   const [idleBackground, setIdleBackground] = useState<string | null>(null);
   const [connected, setConnected] = useState(false);

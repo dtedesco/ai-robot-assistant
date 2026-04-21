@@ -71,6 +71,7 @@ export function realtimeRoutes(tvHub: TvHub): FastifyPluginAsync {
           greeting: agent.greeting,
           tvLibrary: agent.tvLibrary,
           tvIdleBackgroundUrl: agent.tvIdleBackgroundUrl,
+          exitDelaySeconds: agent.exitDelaySeconds,
         },
       };
     },
@@ -321,7 +322,8 @@ REGRAS:
 1. Quando o cliente mencionar um assunto da biblioteca, use show_tv.
 2. Dê a resposta completa junto com a ferramenta — não chame só a ferramenta.
 3. Não peça permissão para usar a ferramenta.
-4. A TV volta sozinha para tela neutra — não chame clear_tv ao fim.
+4. NUNCA chame clear_tv. A TV permanece mostrando o conteúdo até você mostrar algo novo.
+5. O conteúdo fica na TV enquanto você fala - isso é intencional.
 
 ## Reconhecimento de Pessoas
 

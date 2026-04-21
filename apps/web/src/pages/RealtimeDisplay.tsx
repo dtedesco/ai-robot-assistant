@@ -26,6 +26,7 @@ interface AgentConfig {
   greeting: string | null;
   tvLibrary: TvLibraryItem[];
   tvIdleBackgroundUrl: string | null;
+  exitDelaySeconds: number;
 }
 
 interface TvLibraryItem {
@@ -183,7 +184,8 @@ async function registerUnknownPerson(
 }
 
 export default function RealtimeDisplay() {
-  const { agentId } = useParams<{ agentId: string }>();
+  const params = useParams<{ agentId?: string; slug?: string }>();
+  const agentId = params.agentId || params.slug;
 
   // Conversation message type
   interface ChatMessage {
@@ -229,6 +231,7 @@ export default function RealtimeDisplay() {
   const tvLibraryRef = useRef<TvLibraryItem[]>([]);
   const agentIdRef = useRef<string>(""); // URL param (slug or ID) - used for TV commands
   const realAgentIdRef = useRef<string>(""); // Real agent ID from credentials - used for DB operations
+  const exitDelayRef = useRef<number>(3); // Seconds to wait before saying goodbye
 
   // Track if there's a face - only capture audio when someone is present
   const hasFaceRef = useRef<boolean>(false);
@@ -248,12 +251,10 @@ export default function RealtimeDisplay() {
     onPlaybackEnd: () => {
       console.log("[audio] playback ended");
       isSpeakingRef.current = false;
-      // Clear TV after a delay
-      setTimeout(() => {
-        if (agentIdRef.current) {
-          void sendTvCommand(agentIdRef.current, "clear");
-        }
-      }, 5000);
+      // Clear TV when agent finishes speaking
+      if (agentIdRef.current) {
+        sendTvCommand(agentIdRef.current, "clear");
+      }
     },
   });
 
@@ -506,7 +507,7 @@ export default function RealtimeDisplay() {
       clearTimeout(farewellTimer.current);
     }
 
-    // Wait 3 seconds before saying goodbye (in case person comes back)
+    // Wait configured seconds before saying goodbye (in case person comes back)
     farewellTimer.current = setTimeout(() => {
       // Check if face came back during the delay
       if (hasFaceRef.current) {
@@ -564,7 +565,7 @@ export default function RealtimeDisplay() {
         realtimeRef.current?.resetConversation();
       }, 5000);
 
-    }, 3000); // 3 second delay before goodbye
+    }, exitDelayRef.current * 1000); // configurable delay before goodbye
   }, [identifiedPerson]);
 
   // Face detection hook
@@ -730,6 +731,7 @@ export default function RealtimeDisplay() {
       setAgentConfig(creds.agent);
       tvLibraryRef.current = creds.agent.tvLibrary;
       realAgentIdRef.current = creds.agent.id; // Store real agent ID for DB operations
+      exitDelayRef.current = creds.agent.exitDelaySeconds ?? 3;
 
       // Set idle background on TV
       if (creds.agent.tvIdleBackgroundUrl) {

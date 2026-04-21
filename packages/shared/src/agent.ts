@@ -73,6 +73,8 @@ export interface AgentDTO {
   tvLibrary: TvLibraryItem[];
   /** URL (image or video) rendered on the TV while idle. Null → default scene. */
   tvIdleBackgroundUrl: string | null;
+  /** Seconds to wait after face disappears before saying goodbye (default 3) */
+  exitDelaySeconds: number;
   createdAt: string;
   updatedAt: string;
 }
@@ -88,6 +90,7 @@ export interface CreateAgentInput {
   tools?: AgentToolsConfig;
   tvLibrary?: TvLibraryItem[];
   tvIdleBackgroundUrl?: string | null;
+  exitDelaySeconds?: number;
 }
 
 export type UpdateAgentInput = Partial<CreateAgentInput>;

@@ -24,10 +24,12 @@ function RequireAuth({ children }: { children: ReactElement }) {
 export default function App() {
   return (
     <Routes>
-      {/* Public TV display — no auth, fullscreen */}
+      {/* Public displays — no auth, fullscreen */}
+      <Route path="/tv/:slug" element={<TvRealtimeDisplay />} />
+      <Route path="/agente/:slug" element={<RealtimeDisplay />} />
+      {/* Legacy routes for backwards compatibility */}
       <Route path="/tv/bridge/:bridgeId" element={<TvBridgeDisplay />} />
       <Route path="/tv/realtime/:agentId" element={<TvRealtimeDisplay />} />
-      <Route path="/tv/:sessionId" element={<TvDisplay />} />
       <Route path="/realtime/:agentId" element={<RealtimeDisplay />} />
 
       {/* Login */}
@@ -35,7 +37,7 @@ export default function App() {
 
       {/* Admin (authenticated) */}
       <Route
-        path="/admin"
+        path="/admin/*"
         element={
           <RequireAuth>
             <AdminLayout />
@@ -52,9 +54,6 @@ export default function App() {
         <Route path="visits" element={<VisitsList />} />
         <Route path="conversations" element={<ConversationsList />} />
       </Route>
-
-      {/* Redirect everything else to admin */}
-      <Route path="*" element={<Navigate to="/admin" replace />} />
     </Routes>
   );
 }

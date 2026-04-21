@@ -64,6 +64,7 @@ const CreateAgentSchema = z.object({
     .nullable()
     .optional()
     .or(z.literal("").transform(() => null)),
+  exitDelaySeconds: z.number().int().min(1).max(60).optional(),
 });
 
 const UpdateAgentSchema = CreateAgentSchema.partial();
@@ -85,6 +86,7 @@ interface AgentRow {
   tools: unknown;
   tvLibrary: unknown;
   tvIdleBackgroundUrl: string | null;
+  exitDelaySeconds: number;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -114,6 +116,7 @@ function serializeAgent(row: AgentRow): AgentDTO {
     tools: row.tools as AgentToolsConfig,
     tvLibrary: (row.tvLibrary as TvLibraryItem[]) ?? [],
     tvIdleBackgroundUrl: row.tvIdleBackgroundUrl,
+    exitDelaySeconds: row.exitDelaySeconds,
     createdAt: row.createdAt.toISOString(),
     updatedAt: row.updatedAt.toISOString(),
   };
@@ -229,6 +232,7 @@ function registerAuthedAgentRoutes(app: FastifyInstance): void {
         tools: (input.tools ?? DEFAULT_AGENT_TOOLS) as unknown as object,
         tvLibrary: (input.tvLibrary ?? []) as unknown as object,
         tvIdleBackgroundUrl: input.tvIdleBackgroundUrl ?? null,
+        exitDelaySeconds: input.exitDelaySeconds ?? 3,
       },
     });
     return reply.status(201).send(serializeAgent(row));
@@ -264,6 +268,9 @@ function registerAuthedAgentRoutes(app: FastifyInstance): void {
             }),
             ...(input.tvIdleBackgroundUrl !== undefined && {
               tvIdleBackgroundUrl: input.tvIdleBackgroundUrl,
+            }),
+            ...(input.exitDelaySeconds !== undefined && {
+              exitDelaySeconds: input.exitDelaySeconds,
             }),
           },
         });

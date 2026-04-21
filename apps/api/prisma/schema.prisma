@@ -32,6 +32,8 @@ model Agent {
   /// URL (image or video) shown on the TV when no active content is
   /// playing. Falls back to the built-in futuristic scene when null.
   tvIdleBackgroundUrl String?
+  /// Seconds to wait after face disappears before saying goodbye (default 3)
+  exitDelaySeconds    Int       @default(3)
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
   sessions        Session[]
