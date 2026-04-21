@@ -236,6 +236,9 @@ export default function RealtimeDisplay() {
   // Track if there's a face - only capture audio when someone is present
   const hasFaceRef = useRef<boolean>(false);
 
+  // Buffer for assistant transcript (to sync with audio playback)
+  const pendingAssistantTranscript = useRef<string | null>(null);
+
   // Audio playback
   // Track if currently speaking (to mute mic during playback)
   const isSpeakingRef = useRef(false);
@@ -251,6 +254,22 @@ export default function RealtimeDisplay() {
     onPlaybackEnd: () => {
       console.log("[audio] playback ended");
       isSpeakingRef.current = false;
+
+      // Now that audio finished, show the buffered assistant message
+      if (pendingAssistantTranscript.current) {
+        const text = pendingAssistantTranscript.current;
+        pendingAssistantTranscript.current = null;
+
+        // Add to messages array
+        setMessages((prev) => [
+          ...prev,
+          { id: crypto.randomUUID(), role: "assistant", content: text, timestamp: new Date() },
+        ]);
+        // Save to server async
+        const personId = lastPersonId.current !== "unknown" ? lastPersonId.current : null;
+        saveConversationAsync(personId, realAgentIdRef.current, currentVisitId.current, "assistant", text);
+      }
+
       // Clear TV when agent finishes speaking
       if (agentIdRef.current) {
         sendTvCommand(agentIdRef.current, "clear");
@@ -770,14 +789,8 @@ export default function RealtimeDisplay() {
           onAssistantTranscript: (text) => {
             console.log("[assistant]", text);
             setCurrentTranscript(text);
-            // Add to messages array (immediate UI update)
-            setMessages((prev) => [
-              ...prev,
-              { id: crypto.randomUUID(), role: "assistant", content: text, timestamp: new Date() },
-            ]);
-            // Save to server async (fire-and-forget)
-            const personId = lastPersonId.current !== "unknown" ? lastPersonId.current : null;
-            saveConversationAsync(personId, realAgentIdRef.current, currentVisitId.current, "assistant", text);
+            // Buffer the transcript - it will be shown when audio playback ends
+            pendingAssistantTranscript.current = text;
           },
           onToolCall: handleToolCall,
           onError: (err) => {
